@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Función auxiliar para verificar si el usuario es dueño del documento
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Reglas para la colección de CLASES
+    match /artifacts/escuela-base/public/data/classes/{classId} {
+      // Permitir leer/escribir si el userId del documento coincide con el del usuario autenticado
+      allow read, update, delete: if isOwner(resource.data.userId);
+      // Permitir crear si el userId que viene en los datos nuevos coincide con el del usuario autenticado
+      allow create: if isOwner(request.resource.data.userId);
+    }
+
+    // Reglas para la colección de UNIDADES
+    match /artifacts/escuela-base/public/data/units/{unitId} {
+      allow read, update, delete: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+    }
+
+    // Reglas para la colección de HORARIOS (Schedules)
+    match /artifacts/escuela-base/public/data/schedules/{scheduleId} {
+      allow read, update, delete: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+    }
+
+    // Reglas para LISTA BLANCA (Authorized Users)
+    match /artifacts/escuela-base/public/data/authorized_users/{email} {
+      // Permitir leer solo si el email del documento coincide con el email del usuario
+      allow read: if request.auth != null && request.auth.token.email == email;
+    }
+  }
+}
