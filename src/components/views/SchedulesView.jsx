@@ -60,19 +60,36 @@ const SchedulesView = ({ schedules = [], onEdit, onDelete, onCreate, onBack }) =
                     </p>
                 </div>
 
+                <button
+                    onClick={() => onEdit(sortedSchedules[0] || null)}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-indigo-400 rounded-xl transition-all border border-slate-700 hover:border-indigo-500/50 shadow-lg"
+                >
+                    <RefreshCw size={16} /> <span className="hidden sm:inline">Actualizar Licencia</span>
+                    <span className="sm:hidden">Licencia</span>
+                </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {!hasSchedules ? (
                     <div className="col-span-full py-20 text-center text-slate-500 bg-slate-800/20 rounded-2xl border border-slate-700/50 border-dashed flex flex-col items-center justify-center gap-4">
                         <Calendar size={48} className="opacity-50" />
-                        <p className="text-lg">Cargando horario...</p>
-                        <button
-                            onClick={() => window.location.reload()}
-                            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm"
-                        >
-                            <RefreshCw size={16} /> Reintentar Conexión
-                        </button>
+                        <p className="text-lg">No hay horario activo.</p>
+                        <p className="text-sm text-slate-500 max-w-md">Si eres administrador, puedes cargar una licencia para activar el horario.</p>
+
+                        <div className="flex gap-3 mt-2">
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors text-sm"
+                            >
+                                <RefreshCw size={16} /> Recargar
+                            </button>
+                            <button
+                                onClick={() => onEdit(null)}
+                                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm shadow-lg shadow-indigo-500/20"
+                            >
+                                <Plus size={16} /> Cargar Licencia
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     sortedSchedules.map(schedule => <ScheduleCard key={schedule.id} schedule={schedule} />)
