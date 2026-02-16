@@ -1,263 +1,134 @@
-import React, { useMemo } from 'react';
-import { Calendar, PlusCircle, Clock } from 'lucide-react'; // Reduced imports
-import { STATUS } from '@/constants';
-import { getWeekNumber } from '@/utils/dateUtils';
-import DashboardStats from '@/components/home/DashboardStats';
-import WeeklyChart from '@/components/home/WeeklyChart';
-import NextClassHero from '@/components/home/NextClassHero';
+import React from 'react';
+import { BookOpen, Sparkles, ArrowRight, CheckCircle2, PlayCircle } from 'lucide-react';
 
-const HomeView = ({
-    userName,
-    clases,
-    units,
-    schedules,
-    onNavigateToCalendar,
-    onEditClass,
-    onGenerateClasses
-}) => {
-    // --- Stats & Date ---
-    const today = new Date();
-    const todayString = today.toDateString();
+const HomeView = ({ userName, onOpenUnitPlanner, onOpenAiModal }) => {
 
-    // --- Data Processing for Charts & Stats ---
-
-    // 1. Get Single Source of Truth Schedule
-    const activeSchedule = useMemo(() => schedules?.[0], [schedules]);
-
-    // 2. Compute Weekly Stats (Planned vs Pending per Day)
-    // Structure: [{ name: 'L', planned: 2, pending: 3 }, ...]
-    const weeklyData = useMemo(() => {
-        if (!activeSchedule?.scheduleData) return [];
-
-        const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-        const shortDays = ['Dom', 'Lun', 'Mar', 'Miér', 'Jue', 'Vie', 'Sáb'];
-
-        // Initialize Map for 1-5 (Mon-Fri)
-        const statsMap = {
-            1: { name: 'Lun', planned: 0, total: 0 },
-            2: { name: 'Mar', planned: 0, total: 0 },
-            3: { name: 'Mié', planned: 0, total: 0 },
-            4: { name: 'Jue', planned: 0, total: 0 },
-            5: { name: 'Vie', planned: 0, total: 0 }
-        };
-
-        // A. Count TOTAL Slots from Schedule
-        Object.values(activeSchedule.scheduleData).forEach(asignaturas => {
-            Object.values(asignaturas).forEach(bloques => {
-                bloques.forEach(bloque => {
-                    const dayIdx = bloque.dia; // 1-5
-                    if (statsMap[dayIdx]) {
-                        statsMap[dayIdx].total += 1;
-                    }
-                });
-            });
-        });
-
-        // B. Count PLANNED Classes from 'clases' (This Current Week Only)
-        // We calculate the current week based on 'today', assuming Home is "Now".
-        const currentWeekNumber = getWeekNumber(today);
-        const currentYear = today.getFullYear();
-
-        clases.forEach(c => {
-            // Strict Filter: Must match Current Week and Current Year to be shown in chart
-            // as "Planned This Week". Otherwise we inflate the count.
-            if (c.status === STATUS.ACTIVE && c.semana === currentWeekNumber && new Date(c.fecha).getFullYear() === currentYear) {
-                const d = new Date(c.fecha);
-                const dayIdx = d.getDay();
-
-                if (statsMap[dayIdx]) {
-                    statsMap[dayIdx].planned += 1;
-                }
-            }
-        });
-
-        // Transform to Array
-        return [1, 2, 3, 4, 5].map(d => ({
-            name: statsMap[d].name,
-            planned: statsMap[d].planned,
-            // Pending is Total Slots minus Planned (cannot be negative)
-            pending: Math.max(0, statsMap[d].total - statsMap[d].planned)
-        }));
-
-    }, [activeSchedule, clases, today]);
-
-
-    // 3. Get Next/Current Class for Hero
-    const nextClass = useMemo(() => {
-        if (!activeSchedule?.scheduleData) return null;
-
-        const currentDay = today.getDay(); // 1-5
-        const currentHour = today.getHours();
-        const currentMin = today.getMinutes();
-        const currentTimeVal = currentHour * 60 + currentMin;
-
-        // Flatten today's blocks
-        let todaysBlocks = [];
-        Object.entries(activeSchedule.scheduleData).forEach(([curso, asigs]) => {
-            Object.entries(asigs).forEach(([asig, blocks]) => {
-                blocks.filter(b => b.dia === currentDay).forEach(b => {
-                    todaysBlocks.push({ ...b, curso, asignatura: asig });
-                });
-            });
-        });
-
-        // Sort by time
-        todaysBlocks.sort((a, b) => {
-            const [hA, mA] = a.hora.split(':').map(Number);
-            const [hB, mB] = b.hora.split(':').map(Number);
-            return (hA * 60 + mA) - (hB * 60 + mB);
-        });
-
-        // Find match
-        // A. Current Class (Time is within range)
-        // B. Next Class (Time is future)
-        // C. Fallback: First class of day (if early morning)
-
-        const match = todaysBlocks.find(b => {
-            const [h, m] = b.hora.split(':').map(Number);
-            const startVal = h * 60 + m;
-            const endVal = startVal + (parseInt(b.duration) || 90);
-            return endVal > currentTimeVal; // Ends in future
-        });
-
-        if (!match) return null; // Done for day
-
-        // Check if Planned
-        const isPlanned = clases.find(c =>
-            c.curso === match.curso &&
-            c.asignatura === match.asignatura &&
-            new Date(c.fecha).toDateString() === today.toDateString()
-        );
-
-        return {
-            ...match,
-            horaInicio: match.hora,
-            duracion: match.duration || 90,
-            status: isPlanned ? 'planned' : 'pending',
-            generatedClass: isPlanned
-        };
-
-    }, [activeSchedule, clases]);
-
-
-    // 4. Calculate Dashboard Stats
-    const dashboardStats = useMemo(() => {
-        // A. Today's Stats
-        const currentDay = today.getDay(); // 1-5
-        const uniqueSlotsToday = new Set();
-        let slotsToday = 0;
-
-        if (activeSchedule?.scheduleData) {
-            Object.values(activeSchedule.scheduleData).forEach(asignaturas => {
-                Object.values(asignaturas).forEach(bloques => {
-                    bloques.filter(b => b.dia === currentDay).forEach(b => {
-                        const slotKey = `${b.dia}-${b.hora}`;
-                        if (!uniqueSlotsToday.has(slotKey)) {
-                            uniqueSlotsToday.add(slotKey);
-                            slotsToday++;
-                        }
-                    });
-                });
-            });
+    const steps = [
+        {
+            title: "1. Configura tu Año",
+            desc: "Define las fechas de inicio, término y vacaciones en Configuración.",
+            status: "completed"
+        },
+        {
+            title: "2. Solicita tu horario",
+            desc: "Contacta al proveedor para que te entregue la licencia que activará tu horario.",
+            status: "pending"
+        },
+        {
+            title: "3. Planifica tus Clases",
+            desc: "Crea clases rápidas individualmente o planifica todas las sesiones de una unidad (requiere tener unidades creadas previamente).",
+            status: "pending"
+        },
+        {
+            title: "4. Genera Reportes",
+            desc: "Obtén documentos profesionales de tu planificación listos para presentar.",
+            status: "pending"
         }
-
-        const plannedToday = clases.filter(c =>
-            c.status === STATUS.ACTIVE &&
-            new Date(c.fecha).toDateString() === today.toDateString()
-        ).length;
-
-        const pendingToday = Math.max(0, slotsToday - plannedToday);
-
-        // B. Weekly Total Slots
-        let totalWeeklySlots = 0;
-        const uniqueWeeklySlots = new Set();
-        if (activeSchedule?.scheduleData) {
-            Object.values(activeSchedule.scheduleData).forEach(asignaturas => {
-                Object.values(asignaturas).forEach(bloques => {
-                    if (bloques) {
-                        bloques.forEach(bloque => {
-                            const slotKey = `${bloque.dia}-${bloque.hora}`;
-                            if (!uniqueWeeklySlots.has(slotKey)) {
-                                uniqueWeeklySlots.add(slotKey);
-                                totalWeeklySlots++;
-                            }
-                        });
-                    }
-                });
-            });
-        }
-
-        return {
-            planned: plannedToday,
-            pending: pendingToday,
-            totalWeekly: totalWeeklySlots,
-            units: units.length
-        };
-    }, [activeSchedule, clases, todayString]);
+    ];
 
     return (
-        <div className="p-4 md:p-8 max-w-[1600px] mx-auto flex flex-col gap-6 text-slate-100 animate-in fade-in duration-500">
+        <div className="p-6 md:p-12 max-w-[1200px] mx-auto flex flex-col items-center text-slate-100 animate-in fade-in zoom-in-95 duration-500">
 
-            {/* 1. Header & Greeting */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">
-                        {userName ? `Hola, ${userName.split(' ')[0]}` : 'Bienvenido Profe'}
-                    </h1>
-                    <p className="text-slate-400 text-sm mt-1 flex items-center gap-2">
-                        <Calendar size={14} />
-                        {today.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}
-                    </p>
+            {/* Hero Section */}
+            <div className="text-center space-y-6 mb-16 max-w-3xl">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-sm font-medium mb-4">
+                    <Sparkles size={16} />
+                    <span>Tu asistente de planificación inteligente</span>
                 </div>
 
-                <div className="flex gap-3">
-                    <button
-                        onClick={onNavigateToCalendar}
-                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-bold border border-slate-700 transition-all flex items-center gap-2"
-                    >
-                        <Calendar size={16} /> Ver Calendario
-                    </button>
-                    {/* 'Generate Class' Button Removed for Informative Dashboard */}
+                <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-white pb-2">
+                    {userName ? `Hola, ${userName.split(' ')[0]}` : 'Bienvenido a AgendAI'}
+                </h1>
+
+                <p className="text-slate-400 text-xl leading-relaxed">
+                    Todo listo para comenzar a planificar. Selecciona una opción para empezar a crear tus clases de manera rápida y eficiente.
+                </p>
+            </div>
+
+            {/* Actions Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl mb-20">
+
+                {/* Opción 1: Crear desde Unidad */}
+                <button
+                    onClick={onOpenUnitPlanner}
+                    className="group relative overflow-hidden rounded-[2rem] p-8 text-left transition-all hover:scale-[1.02] border border-slate-800 bg-slate-900/50 hover:bg-slate-800/50 hover:border-emerald-500/50"
+                >
+                    <div className="absolute top-0 right-0 p-32 bg-emerald-500/10 blur-[100px] rounded-full group-hover:bg-emerald-500/20 transition-all"></div>
+
+                    <div className="relative z-10 flex flex-col h-full justify-between gap-8">
+                        <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-2 group-hover:scale-110 transition-transform duration-300">
+                            <BookOpen size={32} />
+                        </div>
+
+                        <div>
+                            <h3 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+                                Planificar Unidad
+                                <ArrowRight className="w-5 h-5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-emerald-400" />
+                            </h3>
+                            <p className="text-slate-400 leading-relaxed">
+                                Genera automáticamente todas las clases de una unidad que ya hayas creado. Ideal para estructurar tu planificación completa en un solo clic.
+                            </p>
+                        </div>
+                    </div>
+                </button>
+
+                {/* Opción 2: Creación Rápida / Mágica */}
+                <button
+                    onClick={onOpenAiModal}
+                    className="group relative overflow-hidden rounded-[2rem] p-8 text-left transition-all hover:scale-[1.02] border border-slate-800 bg-slate-900/50 hover:bg-slate-800/50 hover:border-violet-500/50"
+                >
+                    <div className="absolute top-0 right-0 p-32 bg-violet-500/10 blur-[100px] rounded-full group-hover:bg-violet-500/20 transition-all"></div>
+
+                    <div className="relative z-10 flex flex-col h-full justify-between gap-8">
+                        <div className="w-14 h-14 rounded-2xl bg-violet-500/10 flex items-center justify-center text-violet-400 mb-2 group-hover:scale-110 transition-transform duration-300">
+                            <Sparkles size={32} />
+                        </div>
+
+                        <div>
+                            <h3 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+                                Generador Mágico
+                                <ArrowRight className="w-5 h-5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-violet-400" />
+                            </h3>
+                            <p className="text-slate-400 leading-relaxed">
+                                ¿Necesitas clases rápidas? Crea sesiones individuales o semanales al instante con ayuda de la inteligencia artificial.
+                            </p>
+                        </div>
+                    </div>
+                </button>
+            </div>
+
+            {/* Tutorial Steps */}
+            <div className="w-full max-w-5xl border-t border-slate-800/50 pt-12">
+                <div className="text-center mb-10">
+                    <h2 className="text-2xl font-bold text-white mb-2">¿Cómo funciona AgendAI?</h2>
+                    <p className="text-slate-500">Sigue estos tres simples pasos para tener tu año escolar bajo control</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
+                    {/* Connector Line (Desktop) */}
+                    <div className="hidden md:block absolute top-[2.5rem] left-[12%] right-[12%] h-px bg-slate-800 -z-10"></div>
+
+                    {steps.map((step, idx) => (
+                        <div key={idx} className="flex flex-col items-center text-center group">
+                            <div className={`
+                                w-20 h-20 rounded-2xl flex items-center justify-center mb-6 text-2xl font-bold border-4 transition-all duration-300 bg-[#0f1221]
+                                ${step.status === 'completed'
+                                    ? 'border-indigo-500/30 text-indigo-400 shadow-lg shadow-indigo-500/20'
+                                    : 'border-slate-800 text-slate-500 group-hover:border-slate-700'}
+                            `}>
+                                {step.status === 'completed' ? <CheckCircle2 size={32} /> : idx + 1}
+                            </div>
+                            <h3 className="text-lg font-bold text-white mb-3">{step.title}</h3>
+                            <p className="text-slate-400 text-sm leading-relaxed max-w-[250px] mx-auto">
+                                {step.desc}
+                            </p>
+                        </div>
+                    ))}
                 </div>
             </div>
 
-            {/* 2. Bento Grid Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-
-                {/* Row 1: Hero + Stats (Desktop: Hero takes 8 cols, Chart 4? Or Hero 4, Chart 8?) 
-                    Let's do:
-                    [ Stats Row (12) ]
-                    [ Hero (5) ] [ Chart (7) ]
-                */}
-
-                {/* A. Stats Row */}
-                <div className="md:col-span-12">
-                    <DashboardStats stats={dashboardStats} />
-                </div>
-
-                {/* B. Hero Card (Next Class) */}
-                <div className="md:col-span-12 lg:col-span-5 xl:col-span-4 h-[350px]">
-                    <NextClassHero
-                        nextClass={nextClass}
-                        onGenerate={() => {
-                            if (nextClass?.status === 'planned' && nextClass.generatedClass) {
-                                onEditClass(nextClass.generatedClass);
-                            } else {
-                                onGenerateClasses();
-                            }
-                        }}
-                    />
-                </div>
-
-                {/* C. Charts Section */}
-                <div className="md:col-span-12 lg:col-span-7 xl:col-span-8 h-[350px]">
-                    <WeeklyChart data={weeklyData} />
-                </div>
-
-            </div>
         </div>
     );
 };
 
 export default HomeView;
-

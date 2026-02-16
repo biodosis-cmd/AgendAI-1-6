@@ -15,7 +15,7 @@ import { CURSO_COLORES, STATUS } from '@/constants';
  * @param {string} userId
  */
 export const calculateClassSchedule = (data, existingClasses, schedules, selectedYear, selectedWeek, userId) => {
-    const { curso, asignatura, clases: sesiones } = data;
+    const { curso, asignatura, clases: sesiones, unitLimitDate } = data; // unitLimitDate is optional
     const conflicts = [];
     const classesToCreate = [];
 
@@ -42,8 +42,42 @@ export const calculateClassSchedule = (data, existingClasses, schedules, selecte
     const MAX_SEARCH_DAYS = 730; // Extended to ~2 years to be safe
     let daysSearched = 0;
 
+    // --- SCHOOL YEAR CONFIGURATION CHECK ---
+    const isDateAllowed = (date) => {
+        // If no config, allow everything (legacy behavior)
+        if (!data.schoolYearConfig) return true;
+
+        const { schoolYearStart, schoolYearEnd, excludedDates } = data.schoolYearConfig;
+
+        // Helper to get YYYY-MM-DD in local time
+        const toLocalISODate = (d) => {
+            const offset = d.getTimezoneOffset() * 60000;
+            return new Date(d.getTime() - offset).toISOString().split('T')[0];
+        };
+
+        const dateStr = toLocalISODate(date); // The class candidate date
+
+        // 1. Check Range (String comparison works for YYYY-MM-DD)
+        if (schoolYearStart && dateStr < schoolYearStart) return false;
+        if (schoolYearEnd && dateStr > schoolYearEnd) return false;
+
+        // 2. Check Exclusions (Holidays, vacations)
+        if (excludedDates && Array.isArray(excludedDates)) {
+            for (const exclusion of excludedDates) {
+                // exclusions are already YYYY-MM-DD strings from input
+                if (dateStr >= exclusion.start && dateStr <= exclusion.end) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    };
+
+
     // Check conflicts first
     let fechaCheck = getStartDateOfWeek(selectedYear, selectedWeek);
+
     let sesionesCheck = 0;
 
     while (sesionesCheck < sesiones.length) {
@@ -53,6 +87,26 @@ export const calculateClassSchedule = (data, existingClasses, schedules, selecte
                 error: `No se encontraron suficientes bloques disponibles en los próximos 700 días (aprox. 2 años). Revisa si tienes horario asignado para este curso.`
             };
         }
+
+        // UNIT LIMIT CHECK (HARD STOP)
+        if (unitLimitDate) {
+            const currentISODate = fechaCheck.toISOString().split('T')[0];
+            if (currentISODate > unitLimitDate) {
+                // We reached the limit of the unit. Stop checking.
+                // If we haven't found enough slots, we probably should return what we validly found 
+                // OR warn the user. But for simulation, we just stop.
+                break;
+            }
+        }
+
+        // START SCHOOL YEAR CHECK
+        if (!isDateAllowed(fechaCheck)) {
+            // Skip this day entirely
+            fechaCheck.setDate(fechaCheck.getDate() + 1);
+            daysSearched++;
+            continue;
+        }
+        // END SCHOOL YEAR CHECK
 
         const diaSemana = fechaCheck.getDay(); // 0=Sun, 1=Mon...
 
@@ -76,15 +130,8 @@ export const calculateClassSchedule = (data, existingClasses, schedules, selecte
 
                 if (claseExistente) {
                     if (claseExistente.curso === curso) {
-                        // Already scheduled for this exact slot?
-                        // Ideally we skip if it's the SAME class, but here we are creating NEW ones.
                         // CONFLICT: Slot taken.
-                        // But wait, maybe the loop intends to skip taken slots and find the NEXT one?
-                        // The original logic returned Error on conflict.
-                        // User wants "agendar 10 clases". 
-                        // If slot is taken, SHOULD WE SKIP IT? Or Error?
-                        // Standard behavior: Error to prevent double booking unless we build "Fit in gaps" logic.
-                        // For now, let's keep strict no-overwrite.
+                        // We return an error to prevent double booking.
                         return {
                             success: false,
                             error: `CONFLICTO: Ya existe una clase agendada para ${curso} el ${fechaClasePropuesta.toLocaleString('es-CL')}.`
@@ -112,6 +159,23 @@ export const calculateClassSchedule = (data, existingClasses, schedules, selecte
 
     while (sesionesAgendadas < sesiones.length) {
         if (daysSearched > MAX_SEARCH_DAYS) break;
+
+        // UNIT LIMIT CHECK (HARD STOP)
+        if (unitLimitDate) {
+            const currentISODate = fechaActual.toISOString().split('T')[0];
+            if (currentISODate > unitLimitDate) {
+                // Stop generating immediately.
+                break;
+            }
+        }
+
+        // START SCHOOL YEAR CHECK
+        if (!isDateAllowed(fechaActual)) {
+            fechaActual.setDate(fechaActual.getDate() + 1);
+            daysSearched++;
+            continue;
+        }
+        // END SCHOOL YEAR CHECK
 
         const diaSemana = fechaActual.getDay();
         const matchingBlocks = blocksForSubject

@@ -10,12 +10,18 @@ export const db = new Dexie('AgendaDB');
 db.version(2).stores({
     classes: '++id, userId, fecha, curso, asignatura, anio, semana', // Indexes: User, Date, Course, Subject, Year, Week
     units: '++id, userId, curso, asignatura',
-    schedules: '++id, userId, activeFrom, [userId+activeFrom]'
+    schedules: '++id, userId, activeFrom, [userId+activeFrom]',
+    school_years: '++id, userId, year, [userId+year]'
 }).upgrade(tx => {
     // Migration helper (optional): If we wanted to copy old 'date' to 'fecha' we could do it here
     // But since we suspect the old schema might have been blocking 'put', a clean schema is key.
     // Existing data *should* persist, but indexes will be rebuilt.
     // If 'date' existed, it will be lost as an index, but 'fecha' property in objects will now be indexed.
+});
+
+// Update to Version 3 to add school_years table
+db.version(3).stores({
+    school_years: '++id, userId, year, [userId+year]'
 });
 
 // Fallback for V1 (legacy support ensures we don't break if opened in mixed env, but priority is V2)
@@ -207,4 +213,28 @@ export const restoreBackupData = async (backupData, userId, options = { restoreS
             await db.schedules.bulkAdd(schedulesToImport);
         }
     });
+};
+
+// --- School Year Configuration ---
+
+export const getSchoolYearConfig = async (userId, year) => {
+    try {
+        const config = await db.school_years
+            .where('[userId+year]')
+            .equals([userId, year])
+            .first();
+        return config || null;
+    } catch (error) {
+        console.error("Error fetching school year config:", error);
+        return null;
+    }
+};
+
+export const saveSchoolYearConfig = async (config) => {
+    try {
+        return await db.school_years.put(config);
+    } catch (error) {
+        console.error("Error saving school year config:", error);
+        throw error;
+    }
 };

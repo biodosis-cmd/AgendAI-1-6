@@ -8,6 +8,7 @@ import ZenModeModal from '@/components/modals/ZenModeModal';
 import ConfirmationModal from '@/components/common/ConfirmationModal';
 import InfoModal from '@/components/common/InfoModal';
 import UnitSelectionModal from '@/components/modals/UnitSelectionModal';
+import SchoolYearConfigModal from '@/components/modals/SchoolYearConfigModal';
 
 const ModalRoot = () => {
     const { activeModal, closeModal } = useModal();
@@ -37,6 +38,8 @@ const ModalRoot = () => {
             return <InfoModal {...commonProps} />;
         case 'unitSelection':
             return <UnitSelectionModal {...commonProps} />;
+        case 'schoolYearConfig':
+            return <SchoolYearConfigModal {...commonProps} />;
         default:
             return null;
     }

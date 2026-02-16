@@ -52,21 +52,14 @@ const SchedulesView = ({ schedules = [], onEdit, onDelete, onCreate, onBack }) =
         <div className="p-6 max-w-7xl mx-auto animate-compile">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400 mb-2">
+                    <h1 className="text-3xl font-bold text-white mb-2">
                         Mi Horario
                     </h1>
                     <p className="text-slate-400">
                         Visualiza tu horario escolar vigente. Este horario es gestionado automáticamente por la configuración del sistema.
                     </p>
                 </div>
-                <div className="flex gap-3">
-                    <button
-                        onClick={onBack}
-                        className="px-3 py-1.5 sm:px-4 sm:py-2 text-slate-400 hover:text-white transition-colors text-sm sm:text-base"
-                    >
-                        Volver
-                    </button>
-                </div>
+
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

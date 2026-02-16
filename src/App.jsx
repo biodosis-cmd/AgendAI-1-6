@@ -14,6 +14,7 @@ import SchedulesView from '@/components/views/SchedulesView';
 import LoginView from '@/components/views/LoginView';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ScheduleEditorModal from '@/components/modals/ScheduleEditorModal';
+import ConfigView from '@/components/views/ConfigView';
 
 const AppContent = () => {
     const {
@@ -54,6 +55,8 @@ const AppContent = () => {
 
     if (authLoading) return <div className="bg-slate-900 text-white min-h-screen flex items-center justify-center"><LoadingSpinner /></div>;
     if (!currentUser) return <LoginView />;
+    console.log("App actions:", actions);
+    console.log("App actions.setView:", actions?.setView);
 
     return (
         <div className="min-h-screen font-sans text-slate-100 pb-10">
@@ -77,9 +80,10 @@ const AppContent = () => {
                 onRestoreUpload={handleRestoreUpload}
                 totalClasses={clases.length}
                 totalUnits={units.length}
-                onOpenSchedule={handleOpenSchedule}
+                onOpenSchedule={() => handleEditSchedule(schedules[0], null, true)} // Open active schedule
                 onOpenUnitPlanner={handleOpenUnitPlanner}
                 onGoToDate={actions.goToDate}
+                onOpenConfig={() => actions.setView('config')}
             >
 
                 {view === 'locked' && (
@@ -108,6 +112,7 @@ const AppContent = () => {
                 {view === 'home' && <HomeView
                     userName={currentUser?.displayName}
                     userId={userId} // Pass standardized ID
+                    setView={actions.setView} // Pass setView for navigation
                     clases={filteredClasses}
                     units={units.filter(u => new Date(u.fechaInicio).getFullYear() === selectedYear)}
                     schedules={schedules}
@@ -124,19 +129,25 @@ const AppContent = () => {
                         });
                     }}
                     onBackup={handleBackup}
+                    onOpenUnitPlanner={handleOpenUnitPlanner}
+                    onOpenAiModal={() => openModal('aiGeneration', { onClassesGenerated: handleSaveGeneratedClasses, selectedYear, selectedWeek, schedules, units })}
                 />}
                 {view === 'calendar' && <WeeklyView
-                    userId={userId} // Pass standardized ID
                     selectedWeek={selectedWeek}
                     selectedYear={selectedYear}
-                    clases={filteredClasses}
+                    clases={filteredClasses} // Pass filtered classes
                     onWeekChange={actions.changeWeek}
                     onEdit={handleEditClase}
                     onDelete={handleDelete}
+                    onExpand={handleOpenSchedule} // Assuming handleOpenSchedule is the equivalent of onExpand
+                    userId={currentUser?.id}
+                    currentUser={currentUser} // Pass currentUser for header integration
+                    onGoToDate={actions.goToDate}
                 />}
                 {view === 'report' && <ReportView userId={userId} clases={clases} units={units} onBack={() => actions.setView('calendar')} selectedYear={selectedYear} onEditClase={handleEditClase} onDelete={handleDelete} onDeleteMultiple={handleDeleteMultiple} />}
                 {view === 'units' && <UnitsView units={units.filter(u => new Date(u.fechaInicio).getFullYear() === selectedYear)} clases={filteredClasses} userId={userId} onBack={() => actions.setView('calendar')} onEditClase={handleEditClase} onDelete={handleDeleteUnit} selectedYear={selectedYear} selectedWeek={selectedWeek} schedules={schedules} />}
                 {view === 'schedules' && <SchedulesView userId={userId} schedules={schedules} onBack={() => actions.setView('calendar')} onEdit={handleEditSchedule} />}
+                {view === 'config' && <ConfigView userId={userId} selectedYear={selectedYear} />}
             </MainLayout>
 
             {/* --- Modals --- */}

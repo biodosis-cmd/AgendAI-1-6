@@ -246,7 +246,8 @@ export const useAppLogic = () => {
                             selectedWeek: newWeek,
                             schedules,
                             units,
-                            initialUnitId: unit.id
+                            initialUnitId: unit.id,
+                            userId
                         });
                     } else {
                         alert("Fecha de unidad inválida");

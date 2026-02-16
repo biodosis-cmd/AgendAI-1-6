@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { getHorarioForWeek, getStartDateOfWeek, getWeekNumber } from '@/utils/dateUtils';
+import { getStartDateOfWeek, getWeekNumber } from '@/utils/dateUtils';
+import { getSchoolYearConfig } from '@/services/db';
 import { Sparkles, Copy, Download, X, ClipboardPaste, ArrowRight, Check, ChevronLeft, ChevronRight, AlertTriangle, Calendar } from 'lucide-react';
 
-const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, selectedWeek, schedules, units = [], initialUnitId = null }) => {
+const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, selectedWeek, schedules, units = [], initialUnitId = null, userId }) => {
     // SINGLE SOURCE OF TRUTH: Use the first (and only) schedule.
     const activeSchedule = schedules && schedules.length > 0 ? schedules[0] : null;
 
@@ -39,6 +40,7 @@ const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, 
     const [step, setStep] = useState(1); // 1: Configurar, 2: Copiar Prompt, 3: Pegar Respuesta
     const [error, setError] = useState('');
     const [isCopied, setIsCopied] = useState(false);
+    const [schoolYearConfig, setSchoolYearConfig] = useState(null);
 
     // Local Date State for Week Selection
     const [localYear, setLocalYear] = useState(selectedYear);
@@ -101,6 +103,38 @@ const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, 
         }
     }, [isOpen, selectedYear, selectedWeek, initialUnitId, units]);
 
+    // Fetch Config
+    useEffect(() => {
+        if (userId && localYear) {
+            getSchoolYearConfig(userId, localYear).then(setConfig => setSchoolYearConfig(setConfig));
+        }
+    }, [userId, localYear]);
+
+    // Helper: Is Holiday?
+    const getExclusion = (date) => {
+        if (!schoolYearConfig) return null;
+        const toLocalISODate = (d) => {
+            const offset = d.getTimezoneOffset() * 60000;
+            return new Date(d.getTime() - offset).toISOString().split('T')[0];
+        };
+        const dateStr = toLocalISODate(date);
+
+        // Global bounds
+        if (schoolYearConfig.schoolYearStart && dateStr < schoolYearConfig.schoolYearStart) return { title: 'Fuera de Año Escolar', type: 'out' };
+        if (schoolYearConfig.schoolYearEnd && dateStr > schoolYearConfig.schoolYearEnd) return { title: 'Fuera de Año Escolar', type: 'out' };
+
+        // Specific exclusions
+        if (schoolYearConfig.excludedDates) {
+            const found = schoolYearConfig.excludedDates.find(ed => {
+                if (ed.date) return ed.date === dateStr;
+                if (ed.start && ed.end) return dateStr >= ed.start && dateStr <= ed.end;
+                return false;
+            });
+            if (found) return { title: found.title || 'Feriado', type: 'holiday' };
+        }
+        return null;
+    };
+
     const isLockedMode = !!initialUnitId; // Helper boolean
 
     const handleWeekChange = (direction) => {
@@ -152,21 +186,6 @@ const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, 
         });
     }, [availableUnits, localYear, localWeek]);
 
-    // 3. Selection Effect (Only if match found naturally)
-    // 3. Selection Effect (Only if match found naturally AND in Locked Mode - or explicitly requested?)
-    // User requested "Removal of unit logic" for Quick Mode.
-    // So we ONLY auto-select if we are in a mode that supports it, or maybe we just disable auto-select entirely for Quick Mode.
-    // Actually, "Locked Mode" means we PASSED an ID.
-    // If we didn't pass an ID, we assume "Quick Mode" -> No Units.
-    useEffect(() => {
-        if (isLockedMode && naturalActiveUnit) {
-            // In locked mode, initialUnitId handles this. 
-            // So this effect is actually redundant for locked mode, but maybe useful if we wanted auto-switch?
-            // But for Quick Mode, we want NOTHING.
-            // So let's just disable this auto-selection for now to satisfy "remove unit logic".
-            // setSelectedUnitId(naturalActiveUnit.id); 
-        }
-    }, [naturalActiveUnit, isLockedMode]);
 
     // 4. Derivation & Splitting
     const selectedUnit = React.useMemo(() => {
@@ -241,65 +260,59 @@ const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, 
         return Object.keys(activeSchedule.scheduleData[formData.curso] || {}).sort();
     }, [formData.curso, activeSchedule]);
 
-    // Exact Quantity Logic (Counting real days in schedule)
+    // Exact Quantity Logic (Counting real days in schedule - MIRRORED FROM UNITMODAL)
     useEffect(() => {
         if (selectedUnit && activeSchedule && formData.curso && formData.asignatura) {
-            const bloques = activeSchedule.scheduleData?.[formData.curso]?.[formData.asignatura] || [];
 
-            if (bloques.length > 0 && selectedUnit.curso === formData.curso) {
-                const start = parseDateSafe(selectedUnit.fechaInicio);
-                const end = parseDateSafe(selectedUnit.fechaTermino);
+            const startStr = selectedUnit.fechaInicio;
+            const endStr = selectedUnit.fechaTermino;
+            const start = parseDateSafe(startStr);
+            const end = parseDateSafe(endStr);
 
-                if (start && end) {
-                    // Map keys to JS Day 0-6 (Sunday=0, Monday=1...)
-                    const dayMap = {
-                        'Domingo': 0, 'Sunday': 0,
-                        'Lunes': 1, 'Monday': 1,
-                        'Martes': 2, 'Tuesday': 2,
-                        'Miércoles': 3, 'Miercoles': 3, 'Wednesday': 3,
-                        'Jueves': 4, 'Thursday': 4,
-                        'Viernes': 5, 'Friday': 5,
-                        'Sábado': 6, 'Saturday': 6
-                    };
+            if (start && end) {
+                let count = 0;
+                let loopDate = new Date(startStr + 'T12:00:00');
+                const endDate = new Date(endStr + 'T12:00:00');
 
-                    const scheduleDays = new Set();
-                    bloques.forEach(b => {
-                        if (typeof b.day === 'string' && dayMap[b.day] !== undefined) {
-                            scheduleDays.add(dayMap[b.day]);
-                        } else if (typeof b.day === 'number') {
-                            scheduleDays.add(b.day);
+                // Helper to check schedule for a specific date
+                const hasClassOnDate = (date) => {
+                    const dayOfWeek = date.getDay(); // 0=Sun
+                    const blocks = activeSchedule.scheduleData?.[formData.curso]?.[formData.asignatura] || [];
+
+                    // Check if any block matches this day
+                    return blocks.some(b => {
+                        let bDay = b.day || b.dia; // Handle format diffs
+                        // Normalize bDay to 0-6
+                        if (typeof bDay === 'string') {
+                            const map = { 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Miercoles': 3, 'Jueves': 4, 'Viernes': 5, 'Sábado': 6, 'Domingo': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 0 };
+                            if (map[bDay] !== undefined) bDay = map[bDay];
                         }
+                        return bDay === dayOfWeek;
                     });
+                };
 
-                    if (scheduleDays.size > 0) {
-                        let count = 0;
-                        let loopDate = new Date(start);
-                        // Reset time to avoid inconsistencies
-                        loopDate.setHours(12, 0, 0, 0);
-                        const endDate = new Date(end);
-                        endDate.setHours(23, 59, 59, 999);
-
-                        while (loopDate <= endDate) {
-                            if (scheduleDays.has(loopDate.getDay())) {
-                                count++;
-                            }
-                            loopDate.setDate(loopDate.getDate() + 1);
+                while (loopDate <= endDate) {
+                    // 1. Is it a class day?
+                    if (hasClassOnDate(loopDate)) {
+                        // 2. Is it excluded?
+                        const excluded = getExclusion(loopDate);
+                        if (!excluded) {
+                            count++;
                         }
-
-                        // Set calculated count (at least 1 if range valid?)
-                        // If 0 found (e.g. holidays or off-days), we might leave at 0 or warn. 
-                        setFormData(prev => ({ ...prev, cantidad: count.toString() }));
-                    } else {
-                        // If no specific days found in blocks (data error?), fallback to rough weeks
-                        const diffTime = Math.abs(end - start);
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        const weeks = Math.max(1, Math.ceil(diffDays / 7));
-                        setFormData(prev => ({ ...prev, cantidad: (weeks * bloques.length).toString() }));
                     }
+                    loopDate.setDate(loopDate.getDate() + 1);
                 }
+
+                // Update amount if changed
+                setFormData(prev => {
+                    if (prev.cantidad !== count.toString()) {
+                        return { ...prev, cantidad: count.toString() };
+                    }
+                    return prev;
+                });
             }
         }
-    }, [selectedUnit, formData.curso, formData.asignatura, activeSchedule]);
+    }, [selectedUnit, formData.curso, formData.asignatura, activeSchedule, schoolYearConfig]);
 
     useEffect(() => {
         if (formData.curso) {
@@ -472,7 +485,8 @@ Requisitos de Calidad de la Respuesta:
                 asignatura: formData.asignatura,
                 clases: parsedClasses,
                 year: localYear,
-                week: localWeek
+                week: localWeek,
+                unitLimitDate: selectedUnit?.fechaTermino
             });
             onClose();
             setStep(1);
@@ -500,11 +514,11 @@ Requisitos de Calidad de la Respuesta:
                 </div>
             )}
 
-            <div className="card-glass rounded-2xl p-6 w-full max-w-3xl text-slate-100 flex flex-col max-h-[90vh] shadow-2xl border border-slate-700/50">
+            <div className="card-glass rounded-2xl p-4 md:p-6 w-full max-w-3xl text-slate-100 flex flex-col max-h-[90vh] shadow-2xl border border-slate-700/50">
                 {/* ... (Header omitted) */}
                 <div className="flex justify-between items-center mb-6 border-b border-slate-700/50 pb-4">
                     <div className="flex items-center gap-4">
-                        <h3 className="text-xl font-bold flex items-center gap-2 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400">
+                        <h3 className="text-xl font-bold flex items-center gap-2 text-purple-400">
                             <Sparkles className="text-purple-400" /> Generador con IA
                         </h3>
                         {/* ... (Date nav omitted) */}
@@ -705,11 +719,11 @@ Requisitos de Calidad de la Respuesta:
                                 ></textarea>
                             </div>
 
-                            <div className="flex justify-between pt-6">
+                            <div className="flex flex-col-reverse sm:flex-row justify-between pt-6 gap-3">
                                 {/* Back to step 2 in case user needs to copy again manually */}
                                 <button
                                     onClick={() => setStep(2)}
-                                    className="flex items-center gap-2 text-slate-400 hover:text-white px-4 py-2 hover:bg-slate-800 rounded-lg transition-all text-sm"
+                                    className="flex items-center justify-center gap-2 text-slate-400 hover:text-white px-4 py-2 hover:bg-slate-800 rounded-lg transition-all text-sm"
                                 >
                                     <ChevronLeft size={16} /> Volver a copiar prompt
                                 </button>
@@ -717,7 +731,7 @@ Requisitos de Calidad de la Respuesta:
                                 <button
                                     onClick={handleProcessJson}
                                     disabled={!jsonResponse}
-                                    className={`btn-accent px-6 py-3 rounded-xl font-bold flex items-center gap-3 shadow-lg transition-all text-base ${!jsonResponse ? 'opacity-50 cursor-not-allowed grayscale' : 'shadow-purple-500/20 hover:scale-105 active:scale-95'}`}
+                                    className={`btn-accent px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-3 shadow-lg transition-all text-base ${!jsonResponse ? 'opacity-50 cursor-not-allowed grayscale' : 'shadow-purple-500/20 hover:scale-105 active:scale-95'}`}
                                 >
                                     <Download size={20} />
                                     Procesar y Crear Clases

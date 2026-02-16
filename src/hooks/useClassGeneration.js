@@ -22,8 +22,13 @@ export const useClassGeneration = ({ clases, schedules, userId }) => {
         setIsLoading(true);
 
         try {
-            // Delegate logic to pure function
-            const result = calculateClassSchedule(data, clases, schedules, selectedYear, selectedWeek, userId);
+            // Fetch configuration dynamically to ensure freshness
+            const { getSchoolYearConfig } = await import('@/services/db');
+            const schoolYearConfig = await getSchoolYearConfig(userId, selectedYear);
+
+            // Delegate logic to pure function, passing the config
+            const dataWithConfig = { ...data, schoolYearConfig };
+            const result = calculateClassSchedule(dataWithConfig, clases, schedules, selectedYear, selectedWeek, userId);
 
             if (!result.success) {
                 throw new Error(result.error);

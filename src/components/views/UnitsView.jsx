@@ -69,7 +69,7 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
         <main className="p-4 md:p-8">
             <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
                 <div className="flex items-center gap-4">
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">Gestión de Unidades</h2>
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Gestión de Unidades</h2>
 
                     {/* Year Toggle (Dropdown) */}
                     {displayYear && (
@@ -122,7 +122,7 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
                     <Plus size={18} /> <span className="hidden sm:inline">Crear Unidad</span>
                     <span className="sm:hidden">Crear</span>
                 </button>
-                <button onClick={onBack} className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-800 transition-colors text-sm sm:text-base">Volver</button>
+
             </div>
 
             {viewMode === 'timeline' ? (
@@ -225,7 +225,7 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
                     ))}
                 </div>
             )}
-            <UnitModal isOpen={unitModalOpen} onClose={handleCloseModal} userId={userId} unitToEdit={unitToEdit} selectedYear={selectedYear} selectedWeek={selectedWeek} schedules={schedules} />
+            <UnitModal isOpen={unitModalOpen} onClose={handleCloseModal} userId={userId} unitToEdit={unitToEdit} selectedYear={selectedYear} selectedWeek={selectedWeek} schedules={schedules} units={units} />
         </main>
     );
 };

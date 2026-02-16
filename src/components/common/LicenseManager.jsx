@@ -79,7 +79,7 @@ const LicenseManager = ({
     return (
         <div className="bg-[#0f1221] z-50 p-6 flex flex-col rounded-xl border border-indigo-500/20 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-white bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">
+                <h2 className="text-xl font-bold text-white">
                     Importar Licencia
                 </h2>
             </div>
