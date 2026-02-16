@@ -1,99 +1,91 @@
-import React, { useState } from 'react';
-import { Calendar, Plus, Eye, Trash2, Clock, CheckCircle2, RefreshCw } from 'lucide-react';
+import React from 'react';
+import { Calendar, Eye, CheckCircle2, FileJson, ArrowRight } from 'lucide-react';
+import LicenseManager from '@/components/common/LicenseManager';
 
-const SchedulesView = ({ schedules = [], onEdit, onDelete, onCreate, onBack }) => {
+const SchedulesView = ({ schedules = [], onEdit, userId }) => {
 
-    // Sort schedules: Default order (should be only one)
     const sortedSchedules = schedules;
-    const today = (() => {
-        const d = new Date();
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    })();
     const hasSchedules = sortedSchedules.length > 0;
-
-    const ScheduleCard = ({ schedule }) => {
-        return (
-            <div className="group relative bg-[#1e293b]/50 backdrop-blur-sm border border-indigo-500/30 rounded-2xl p-5 hover:bg-slate-800/60 transition-all hover:-translate-y-1 shadow-lg shadow-black/20 overflow-hidden ring-1 ring-indigo-500/20">
-                <div className="absolute top-4 right-4">
-                    <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-2 py-1 rounded-full border border-emerald-500/20 uppercase tracking-wide flex items-center gap-1">
-                        <CheckCircle2 size={10} /> Activo
-                    </span>
-                </div>
-
-                <div className="flex items-start justify-between mb-4">
-                    <div className={`p-3 rounded-xl bg-indigo-500/20 text-indigo-400 mb-2`}>
-                        <Calendar size={24} />
-                    </div>
-                </div>
-
-                <h3 className="text-lg font-bold text-slate-100 mb-1">
-                    {schedule.name}
-                </h3>
-
-                {/* Date Display Removed for Single Schedule Mode */}
-                <div className="flex items-center gap-2 text-sm text-slate-400 mb-6 font-mono bg-slate-900/50 py-1.5 px-3 rounded-lg w-fit">
-                    <Clock size={14} className="text-indigo-400" />
-                    <span>Horario Principal</span>
-                </div>
-
-                <div className="flex items-center gap-3 pt-4 border-t border-slate-700/50">
-                    <button
-                        onClick={() => onEdit(schedule, null, true)}
-                        className="flex-1 py-2 rounded-lg bg-slate-700/30 hover:bg-indigo-500/20 hover:text-indigo-300 text-slate-300 text-sm font-medium transition-all flex items-center justify-center gap-2"
-                    >
-                        <Eye size={14} /> Ver Detalle
-                    </button>
-                </div>
-            </div>
-        );
-    };
+    const activeSchedule = hasSchedules ? sortedSchedules[0] : null;
 
     return (
-        <div className="p-6 max-w-7xl mx-auto animate-compile">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div className="p-4 md:p-8 max-w-5xl mx-auto animate-compile">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-slate-800/50 pb-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">
-                        Mi Horario
+                    <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+                        {hasSchedules ? 'Gestión de Horario' : 'Configuración Inicial'}
                     </h1>
-                    <p className="text-slate-400">
-                        Visualiza tu horario escolar vigente. Este horario es gestionado automáticamente por la configuración del sistema.
+                    <p className="text-slate-400 max-w-2xl">
+                        {hasSchedules
+                            ? 'Tu horario está activo. Puedes actualizarlo cargando una nueva licencia o visualizar la grilla actual.'
+                            : 'Para comenzar, importa tu licencia (archivo de configuración) para activar el sistema.'
+                        }
                     </p>
                 </div>
 
-                <button
-                    onClick={() => onEdit(sortedSchedules[0] || null)}
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-indigo-400 rounded-xl transition-all border border-slate-700 hover:border-indigo-500/50 shadow-lg"
-                >
-                    <RefreshCw size={16} /> <span className="hidden sm:inline">Actualizar Licencia</span>
-                    <span className="sm:hidden">Licencia</span>
-                </button>
+                {hasSchedules && (
+                    <button
+                        onClick={() => onEdit(activeSchedule, null, true)}
+                        className="group flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95"
+                    >
+                        <Eye size={18} />
+                        <span className="font-medium">Ver Grilla Horaria</span>
+                        <ArrowRight size={16} className="opacity-0 group-hover:opacity-100 transition-opacity -ml-6 group-hover:ml-0" />
+                    </button>
+                )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {!hasSchedules ? (
-                    <div className="col-span-full py-20 text-center text-slate-500 bg-slate-800/20 rounded-2xl border border-slate-700/50 border-dashed flex flex-col items-center justify-center gap-4">
-                        <Calendar size={48} className="opacity-50" />
-                        <p className="text-lg">No hay horario activo.</p>
-                        <p className="text-sm text-slate-500 max-w-md">Si eres administrador, puedes cargar una licencia para activar el horario.</p>
+            <div className="flex flex-col gap-8">
 
-                        <div className="flex gap-3 mt-2">
-                            <button
-                                onClick={() => window.location.reload()}
-                                className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors text-sm"
-                            >
-                                <RefreshCw size={16} /> Recargar
-                            </button>
-                            <button
-                                onClick={() => onEdit(null)}
-                                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm shadow-lg shadow-indigo-500/20"
-                            >
-                                <Plus size={16} /> Cargar Licencia
-                            </button>
+                {/* Active Schedule Summary Card */}
+                {hasSchedules && (
+                    <div className="bg-slate-900/50 border border-emerald-500/20 rounded-2xl p-6 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
+
+                        <div className="flex items-center gap-4 z-10">
+                            <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-400">
+                                <CheckCircle2 size={32} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                    Horario Activo
+                                    <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">VIGENTE</span>
+                                </h3>
+                                <p className="text-slate-400 text-sm mt-1 font-mono">
+                                    {activeSchedule?.name || 'Sin Nombre'}
+                                </p>
+                                {activeSchedule?.validYear && (
+                                    <p className="text-slate-500 text-xs mt-1">Año Lectivo: {activeSchedule.validYear}</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                            {/* Actions could go here */}
                         </div>
                     </div>
-                ) : (
-                    sortedSchedules.map(schedule => <ScheduleCard key={schedule.id} schedule={schedule} />)
                 )}
+
+                {/* Import Area - Always Visible */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-white font-semibold text-lg">
+                        <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
+                            <FileJson size={20} />
+                        </div>
+                        <h2>{hasSchedules ? 'Actualizar / Reemplazar Licencia' : 'Cargar Licencia Nueva'}</h2>
+                    </div>
+
+                    <div className="bg-[#0f1221] rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+                        <LicenseManager
+                            userId={userId}
+                            // Hide local header of component to blend better? No, keep it for context.
+                            onImportSuccess={() => {
+                                // Optional: Feedback handled by LicenseManager alert
+                            }}
+                        />
+                    </div>
+                </div>
             </div>
         </div>
     );
