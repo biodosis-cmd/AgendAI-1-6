@@ -514,15 +514,15 @@ Requisitos de Calidad de la Respuesta:
                 </div>
             )}
 
-            <div className="card-glass rounded-2xl p-4 md:p-6 w-full max-w-3xl text-slate-100 flex flex-col max-h-[90vh] shadow-2xl border border-slate-700/50">
+            <div className="card-glass rounded-2xl p-4 md:p-6 w-full max-w-3xl text-slate-100 flex flex-col max-h-[90vh] shadow-2xl border border-slate-700/50 relative">
                 {/* ... (Header omitted) */}
-                <div className="flex justify-between items-center mb-6 border-b border-slate-700/50 pb-4">
-                    <div className="flex items-center gap-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-slate-700/50 pb-4 gap-4 pt-6 md:pt-0">
+                    <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full md:w-auto">
                         <h3 className="text-xl font-bold flex items-center gap-2 text-purple-400">
-
+                            {/* Title Content if any */}
                         </h3>
-                        {/* ... (Date nav omitted) */}
-                        <div className="flex items-center bg-slate-800 rounded-full p-1 pl-1 pr-1 border border-slate-700 shadow-sm">
+                        {/* Date Nav */}
+                        <div className="flex items-center bg-slate-800 rounded-full p-1 pl-1 pr-1 border border-slate-700 shadow-sm w-full md:w-auto justify-between md:justify-start">
                             <button
                                 onClick={() => handleWeekChange(-1)}
                                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
@@ -530,10 +530,10 @@ Requisitos de Calidad de la Respuesta:
                                 <ChevronLeft size={16} />
                             </button>
 
-                            <div className="flex items-center px-4 gap-3 text-sm font-medium text-slate-300 select-none border-l border-r border-slate-700/50 mx-1 h-5 leading-none">
-                                <span className="font-bold text-white whitespace-nowrap">Semana {localWeek}</span>
-                                <span className="text-slate-600">|</span>
-                                <span className="uppercase text-xs tracking-wider whitespace-nowrap opacity-80">{getShortRange()}</span>
+                            <div className="flex flex-col md:flex-row items-center px-2 md:px-4 gap-0 md:gap-3 text-sm font-medium text-slate-300 select-none border-l border-r border-slate-700/50 mx-1 h-auto md:h-5 leading-tight md:leading-none py-1 md:py-0">
+                                <span className="font-bold text-white whitespace-nowrap text-xs md:text-sm">Semana {localWeek}</span>
+                                <span className="hidden md:inline text-slate-600">|</span>
+                                <span className="uppercase text-[10px] md:text-xs tracking-wider whitespace-nowrap opacity-80">{getShortRange()}</span>
                             </div>
 
                             <button
@@ -544,7 +544,7 @@ Requisitos de Calidad de la Respuesta:
                             </button>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700/50 transition-colors text-slate-400 hover:text-white"><X size={24} /></button>
+                    <button onClick={onClose} className="absolute top-3 right-3 md:static p-2 rounded-full hover:bg-slate-700/50 transition-colors text-slate-400 hover:text-white z-10 bg-[#0f1221]/80 backdrop-blur-sm md:bg-transparent"><X size={24} /></button>
                 </div>
 
                 <div className="flex items-center justify-between mb-8 px-8 relative">

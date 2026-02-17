@@ -398,12 +398,15 @@ Respuesta UNICAMENTE JSON válido:
                                 >
                                     <div className="flex justify-between items-start">
                                         <span className={`text-xs ${textClass}`}>{i + 1}</span>
-                                        {isCourseDay && !isExclusion && !isBlocked && (
-                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.8)]"></div>
-                                        )}
                                     </div>
 
-                                    {/* Status Indicators */}
+                                    {/* Status Indicators (Bottom) */}
+                                    {isCourseDay && !isExclusion && !isBlocked && (
+                                        <div className="flex justify-center pb-1">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.8)] animate-pulse"></div>
+                                        </div>
+                                    )}
+
                                     {isExclusion && (
                                         <div className="text-[9px] leading-tight text-red-500/70 font-medium truncate">{isExclusion.title}</div>
                                     )}
@@ -445,7 +448,7 @@ Respuesta UNICAMENTE JSON válido:
                             <Sparkles className="text-indigo-400" /> Nueva Unidad
                         </h2>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white"><X /></button>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white flex-shrink-0"><X /></button>
                 </div>
 
                 {/* MOBILE TABS (Visible only on mobile) */}
