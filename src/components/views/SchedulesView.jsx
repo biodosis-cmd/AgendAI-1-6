@@ -1,92 +1,122 @@
-import React from 'react';
-import { Calendar, Eye, CheckCircle2, FileJson, ArrowRight } from 'lucide-react';
-import LicenseManager from '@/components/common/LicenseManager';
+import React, { useState, useMemo } from 'react';
+import { Calendar, FileJson, AlertCircle, Plus, Eye } from 'lucide-react';
+import ScheduleGrid from '@/components/schedule/ScheduleGrid';
+import ImportLicenseModal from '@/components/modals/ImportLicenseModal';
 
-const SchedulesView = ({ schedules = [], onEdit, userId }) => {
+const SchedulesView = ({ schedules = [], onEdit, userId, onRefresh }) => {
 
     const sortedSchedules = schedules;
     const hasSchedules = sortedSchedules.length > 0;
     const activeSchedule = hasSchedules ? sortedSchedules[0] : null;
 
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+    // Transformation: Flatten scheduleData into flatBlocks for the Grid
+    const flatBlocks = useMemo(() => {
+        if (!activeSchedule || !activeSchedule.scheduleData || Object.keys(activeSchedule.scheduleData).length === 0) return [];
+
+        const blocks = [];
+        const PIXELS_PER_MINUTE = 0.9;
+        const START_HOUR = 8;
+
+        Object.entries(activeSchedule.scheduleData).forEach(([courseName, subjects]) => {
+            Object.entries(subjects).forEach(([subjectName, classBlocks]) => {
+                if (Array.isArray(classBlocks)) {
+                    classBlocks.forEach((block, idx) => {
+                        const [h, m] = block.hora.split(':').map(Number);
+                        const startMinutes = (h - START_HOUR) * 60 + m;
+                        const top = startMinutes * PIXELS_PER_MINUTE;
+                        const height = (block.duration || 90) * PIXELS_PER_MINUTE;
+
+                        blocks.push({
+                            id: `${courseName}-${subjectName}-${block.dia}-${idx}-${Date.now()}`,
+                            dia: block.dia,
+                            hora: block.hora,
+                            duration: block.duration,
+                            curso: courseName,
+                            asignatura: subjectName,
+                            top,
+                            height
+                        });
+                    });
+                }
+            });
+        });
+        return blocks;
+    }, [activeSchedule]);
+
+    const handleSuccess = () => {
+        // Refresh handled by context/modal logic mostly, but we can trigger a reload if needed
+        // Assuming schedules prop will update automatically via parent re-render
+        if (onRefresh) onRefresh();
+    };
+
     return (
-        <div className="p-4 md:p-8 max-w-5xl mx-auto animate-compile">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto animate-compile h-full flex flex-col">
+
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-slate-800/50 pb-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-slate-800/50 pb-6 flex-none">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-                        {hasSchedules ? 'Gestión de Horario' : 'Configuración Inicial'}
+                        Mi Horario
                     </h1>
                     <p className="text-slate-400 max-w-2xl">
                         {hasSchedules
-                            ? 'Tu horario está activo. Puedes actualizarlo cargando una nueva licencia o visualizar la grilla actual.'
-                            : 'Para comenzar, importa tu licencia (archivo de configuración) para activar el sistema.'
+                            ? `Visualizando horario activo: ${activeSchedule.name}`
+                            : 'No hay horario cargado. Importa una licencia para visualizar la grilla.'
                         }
                     </p>
                 </div>
 
-                {hasSchedules && (
+                <div className="flex gap-3">
                     <button
-                        onClick={() => onEdit(activeSchedule, null, true)}
+                        onClick={() => setIsImportModalOpen(true)}
                         className="group flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95"
                     >
-                        <Eye size={18} />
-                        <span className="font-medium">Ver Grilla Horaria</span>
-                        <ArrowRight size={16} className="opacity-0 group-hover:opacity-100 transition-opacity -ml-6 group-hover:ml-0" />
+                        <FileJson size={18} />
+                        <span className="font-medium">{hasSchedules ? 'Actualizar Licencia' : 'Importar Licencia'}</span>
                     </button>
-                )}
-            </div>
-
-            <div className="flex flex-col gap-8">
-
-                {/* Active Schedule Summary Card */}
-                {hasSchedules && (
-                    <div className="bg-slate-900/50 border border-emerald-500/20 rounded-2xl p-6 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
-
-                        <div className="flex items-center gap-4 z-10">
-                            <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-400">
-                                <CheckCircle2 size={32} />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                    Horario Activo
-                                    <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">VIGENTE</span>
-                                </h3>
-                                <p className="text-slate-400 text-sm mt-1 font-mono">
-                                    {activeSchedule?.name || 'Sin Nombre'}
-                                </p>
-                                {activeSchedule?.validYear && (
-                                    <p className="text-slate-500 text-xs mt-1">Año Lectivo: {activeSchedule.validYear}</p>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="flex gap-3">
-                            {/* Actions could go here */}
-                        </div>
-                    </div>
-                )}
-
-                {/* Import Area - Always Visible */}
-                <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-white font-semibold text-lg">
-                        <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
-                            <FileJson size={20} />
-                        </div>
-                        <h2>{hasSchedules ? 'Actualizar / Reemplazar Licencia' : 'Cargar Licencia Nueva'}</h2>
-                    </div>
-
-                    <div className="bg-[#0f1221] rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
-                        <LicenseManager
-                            userId={userId}
-                            // Hide local header of component to blend better? No, keep it for context.
-                            onImportSuccess={() => {
-                                // Optional: Feedback handled by LicenseManager alert
-                            }}
-                        />
-                    </div>
                 </div>
             </div>
+
+            {/* Grid Content */}
+            <div className="flex-1 bg-[#0f1221] rounded-2xl border border-slate-800 shadow-xl overflow-hidden relative min-h-[600px]">
+                {hasSchedules ? (
+                    <div className="h-full overflow-y-auto custom-scrollbar p-1">
+                        <ScheduleGrid
+                            flatBlocks={flatBlocks}
+                            readOnly={true}
+                        />
+                    </div>
+                ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 gap-6">
+                        <div className="w-24 h-24 rounded-full bg-slate-800/50 flex items-center justify-center">
+                            <Calendar size={48} className="text-slate-600 opacity-50" />
+                        </div>
+                        <div className="text-center max-w-md px-4">
+                            <h3 className="text-xl font-bold text-slate-300 mb-2">Espacio Vacío</h3>
+                            <p className="text-slate-500">
+                                Aún no has cargado un horario. Utiliza el botón "Importar Licencia" para configurar tu estructura de clases.
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setIsImportModalOpen(true)}
+                            className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-indigo-400 rounded-xl transition-colors border border-slate-700/50 hover:border-indigo-500/30"
+                        >
+                            <Plus size={18} />
+                            <span>Cargar Ahora</span>
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* Modal */}
+            <ImportLicenseModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                userId={userId}
+                onSuccess={handleSuccess}
+            />
         </div>
     );
 };
