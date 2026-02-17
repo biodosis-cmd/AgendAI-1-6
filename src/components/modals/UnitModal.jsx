@@ -422,6 +422,16 @@ Respuesta UNICAMENTE JSON válido:
         </div>
     );
 
+    // Mobile Tab State
+    const [mobileTab, setMobileTab] = useState('form'); // 'form' | 'visual'
+
+    // Auto-switch mobile tab on step change
+    useEffect(() => {
+        if (step === 2 || step === 3) {
+            setMobileTab('visual');
+        }
+    }, [step]);
+
     if (!isOpen) return null;
 
     return (
@@ -438,11 +448,30 @@ Respuesta UNICAMENTE JSON válido:
                     <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white"><X /></button>
                 </div>
 
+                {/* MOBILE TABS (Visible only on mobile) */}
+                <div className="md:hidden flex border-b border-slate-800 bg-slate-900/30">
+                    <button
+                        onClick={() => setMobileTab('form')}
+                        className={`flex-1 py-3 text-sm font-bold transition-colors ${mobileTab === 'form' ? 'text-indigo-400 border-b-2 border-indigo-500 bg-indigo-500/5' : 'text-slate-400 hover:text-slate-200'}`}
+                    >
+                        Datos
+                    </button>
+                    <button
+                        onClick={() => setMobileTab('visual')}
+                        className={`flex-1 py-3 text-sm font-bold transition-colors ${mobileTab === 'visual' ? 'text-indigo-400 border-b-2 border-indigo-500 bg-indigo-500/5' : 'text-slate-400 hover:text-slate-200'}`}
+                    >
+                        {step === 1 ? 'Calendario' : step === 4 ? 'Editor' : 'IA Prompt'}
+                    </button>
+                </div>
+
                 {/* BODY */}
-                <div className="flex-grow flex overflow-hidden">
+                <div className="flex-grow flex overflow-hidden relative">
 
                     {/* LEFT PANEL: CONFIG & PREVIEW */}
-                    <div className="w-1/3 min-w-[350px] bg-slate-900/30 border-r border-slate-800 p-6 flex flex-col gap-6 overflow-y-auto custom-scrollbar">
+                    <div className={`
+                        w-full md:w-1/3 md:min-w-[350px] bg-slate-900/30 border-r border-slate-800 p-6 flex flex-col gap-6 overflow-y-auto custom-scrollbar
+                        ${mobileTab === 'form' ? 'flex' : 'hidden md:flex'}
+                    `}>
 
                         {/* Course Selector */}
                         <div className="space-y-4">
@@ -533,7 +562,10 @@ Respuesta UNICAMENTE JSON válido:
                     </div>
 
                     {/* RIGHT PANEL: VISUAL CALENDAR & EDITOR */}
-                    <div className="flex-1 bg-[#05060b] relative overflow-y-auto custom-scrollbar p-8">
+                    <div className={`
+                        flex-1 bg-[#05060b] relative overflow-y-auto custom-scrollbar p-8
+                        ${mobileTab === 'visual' ? 'flex flex-col' : 'hidden md:flex flex-col'}
+                    `}>
 
                         {step === 1 && renderCalendarView()}
 

@@ -84,7 +84,7 @@ const WeeklyView = ({ selectedWeek, selectedYear, clases, onWeekChange, onEdit, 
             {/* Main Content */}
             <div className="flex flex-col flex-grow h-full bg-[#020617]/30 backdrop-blur-sm overflow-hidden p-2 md:p-6 relative">
 
-                {/* 1. Month & Year (Top Right) - Smaller on Mobile */}
+                {/* 1. Month & Year (Top Right) */}
                 <div className="absolute top-2 right-4 md:top-6 md:right-8 z-10 text-right pointer-events-none select-none">
                     <h1 className="text-3xl md:text-5xl font-bold text-slate-100 tracking-tight leading-none drop-shadow-lg opacity-90">
                         {format(weekStartDate, 'MMMM', { locale: es }).charAt(0).toUpperCase() + format(weekStartDate, 'MMMM', { locale: es }).slice(1)}
@@ -101,27 +101,6 @@ const WeeklyView = ({ selectedWeek, selectedYear, clases, onWeekChange, onEdit, 
                         onGoToDate={onGoToDate}
                     />
                 </div>
-
-                {/* Mobile Header Info */}
-                <div className="md:hidden mt-12 mb-4 flex justify-between items-end px-2">
-                    <div>
-                        <span className="text-xs font-bold text-slate-500 tracking-wider uppercase block mb-1">Semana {selectedWeek}</span>
-                        <span className="text-white font-bold text-xl block">{DIAS_SEMANA[mobileDayIndex]}</span>
-                        <span className="text-indigo-400 text-sm font-medium">
-                            {(() => {
-                                const d = new Date(weekStartDate);
-                                d.setDate(d.getDate() + mobileDayIndex);
-                                return format(d, 'd ' + 'MMMM', { locale: es });
-                            })()}
-                        </span>
-                    </div>
-                    {/* Mobile Day Nav Controls */}
-                    <div className="flex gap-2 bg-slate-800/50 p-1 rounded-lg border border-slate-700/50">
-                        <button onClick={() => handleMobileDayChange(-1)} className="p-3 text-slate-300 hover:text-white hover:bg-slate-700 rounded-md"><ChevronLeft size={20} /></button>
-                        <button onClick={() => handleMobileDayChange(1)} className="p-3 text-slate-300 hover:text-white hover:bg-slate-700 rounded-md"><ChevronRight size={20} /></button>
-                    </div>
-                </div>
-
 
                 {/* 2. Week Info (Desktop) */}
                 <div className="hidden md:flex absolute top-[195px] left-[250px] z-20 items-baseline gap-3 pointer-events-none select-none">
@@ -146,9 +125,21 @@ const WeeklyView = ({ selectedWeek, selectedYear, clases, onWeekChange, onEdit, 
                 </div>
 
                 {/* Unified Scrollable Container wrapped in Panel Style */}
-                <div className="flex-grow flex flex-col bg-[#0f1221] border border-slate-800/50 rounded-2xl shadow-lg run-flow-root relative overflow-hidden mt-2 md:mt-0">
-                    <div className="flex-grow overflow-y-auto custom-scrollbar relative">
-                        <div className="flex min-h-[650px] relative">
+                <div className="flex-grow flex flex-col bg-[#0f1221] border border-slate-800/50 rounded-2xl shadow-lg run-flow-root relative overflow-hidden mt-12 md:mt-0">
+                    {/* Mobile Header (Date Navigation Only) - Adapted */}
+                    <div className="md:hidden flex justify-between items-center p-4 border-b border-slate-800/50 bg-[#0f1221] sticky top-0 z-50">
+                        <button onClick={() => onWeekChange(-1)} className="p-2 text-slate-400 hover:text-white"><ChevronLeft size={20} /></button>
+                        <div className="text-center">
+                            <span className="text-xs text-slate-500 uppercase font-bold block">Semana {selectedWeek}</span>
+                            <span className="text-sm text-white font-bold">{format(weekStartDate, 'd MMM', { locale: es })} - {format(weekEndDate, 'd MMM', { locale: es })}</span>
+                        </div>
+                        <button onClick={() => onWeekChange(1)} className="p-2 text-slate-400 hover:text-white"><ChevronRight size={20} /></button>
+                    </div>
+
+
+                    <div className="flex-grow overflow-auto custom-scrollbar relative">
+                        {/* Container needs min-width to force scroll */}
+                        <div className="flex min-h-[650px] relative min-w-[800px]">
                             {/* Time Column */}
                             <div className="flex-none w-10 md:w-12 relative pt-[60px] sticky left-0 z-40 bg-[#0f1221]/95 backdrop-blur-sm border-r border-slate-800/50 shadow-sm">
                                 {Array.from({ length: 21 }).map((_, i) => {
@@ -166,41 +157,21 @@ const WeeklyView = ({ selectedWeek, selectedYear, clases, onWeekChange, onEdit, 
                                 })}
                             </div>
 
-                            {/* Days Grid - Responsive Layout */}
-                            <div className="flex-grow grid grid-cols-1 md:grid-cols-5 min-w-0">
+                            {/* Days Grid - Always 5 columns, min-width forces scroll */}
+                            <div className="flex-grow grid grid-cols-5 min-w-0">
                                 {DIAS_SEMANA.map((dia, index) => {
-                                    // Mobile Filter: Render ALL but hide with CSS or don't render?
-                                    // Better to only render what's needed to save DOM nodes, or just hide.
-                                    // Conditional rendering is cleaner.
-
-                                    // Logic: If on mobile (check width? No, use CSS helper or just check state matched index).
-                                    // Since we don't have "isMobile" state here easily without hook, let's use CSS classes.
-                                    // "md:block" for all. "block" only for current index, "hidden" for others on mobile.
-
-                                    const isCurrentMobileDay = index === mobileDayIndex;
-                                    const mobileClass = isCurrentMobileDay ? 'block' : 'hidden';
-
                                     const currentDate = new Date(weekStartDate);
                                     currentDate.setDate(weekStartDate.getDate() + index);
                                     const isToday = new Date().toDateString() === currentDate.toDateString();
 
                                     return (
-                                        <div key={dia} className={`relative flex flex-col border-r border-slate-800/50 last:border-r-0 ${isToday ? 'bg-indigo-900/5' : ''} ${mobileClass} md:block`}>
-                                            {/* Sticky Day Header - Simplified on Mobile since we have Top Header */}
-                                            <div className={`sticky top-0 z-30 text-center py-3 border-b border-slate-800/50 ${isToday ? 'bg-indigo-900/20 backdrop-blur-md' : 'bg-[#0f1221]/95 backdrop-blur-md'} h-[60px] flex flex-col justify-center hidden md:flex`}>
+                                        <div key={dia} className={`relative flex flex-col border-r border-slate-800/50 last:border-r-0 ${isToday ? 'bg-indigo-900/5' : ''}`}>
+                                            {/* Sticky Day Header */}
+                                            <div className={`sticky top-0 z-30 text-center py-3 border-b border-slate-800/50 ${isToday ? 'bg-indigo-900/20 backdrop-blur-md' : 'bg-[#0f1221]/95 backdrop-blur-md'} h-[60px] flex flex-col justify-center`}>
                                                 <h3 className={`font-bold text-lg leading-none ${isToday ? 'text-indigo-400' : 'text-slate-300'}`}>{dia}</h3>
                                                 <p className={`text-[10px] ${isToday ? 'text-indigo-300' : 'text-slate-500'} uppercase font-medium tracking-wider mt-1`}>
                                                     {currentDate.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}
                                                 </p>
-                                            </div>
-
-                                            {/* Header Spacer for Mobile (Hidden header but need space so grid aligns with time?) 
-                                                Actually mobile header is external. We just need the spacer to match time column padding (60px).
-                                            */}
-                                            <div className="md:hidden h-[60px] border-b border-slate-800/50 bg-[#0f1221]/95 sticky top-0 z-30 flex items-center justify-center">
-                                                <span className="text-slate-500 text-xs font-bold uppercase tracking-widest">
-                                                    {dia} {currentDate.getDate()}
-                                                </span>
                                             </div>
 
                                             {/* EXCLUSION OVERLAY */}
