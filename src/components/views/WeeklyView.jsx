@@ -78,9 +78,6 @@ const WeeklyView = ({ selectedWeek, selectedYear, clases, onWeekChange, onEdit, 
         }
     };
 
-    // Mobile Calendar Toggle
-    const [isMobileCalendarOpen, setIsMobileCalendarOpen] = useState(false);
-
     return (
         <div className="flex bg-transparent overflow-hidden h-full flex-col md:flex-row">
 
@@ -130,37 +127,28 @@ const WeeklyView = ({ selectedWeek, selectedYear, clases, onWeekChange, onEdit, 
                 {/* Unified Scrollable Container wrapped in Panel Style */}
                 <div className="flex-grow flex flex-col bg-[#0f1221] border border-slate-800/50 rounded-2xl shadow-lg run-flow-root relative overflow-hidden mt-12 md:mt-0">
 
-                    {/* Mobile Header (Date Navigation + Calendar Toggle) */}
+                    {/* Mobile Header (Date Navigation) */}
                     <div className="md:hidden flex flex-col border-b border-slate-800/50 bg-[#0f1221] sticky top-0 z-50">
-                        <div className="flex justify-between items-center p-4">
+                        {/* 1. Week Navigation */}
+                        <div className="flex justify-between items-center p-4 bg-[#0f1221] z-50 relative">
                             <button onClick={() => onWeekChange(-1)} className="p-2 text-slate-400 hover:text-white"><ChevronLeft size={20} /></button>
 
-                            <div className="flex flex-col items-center cursor-pointer" onClick={() => setIsMobileCalendarOpen(!isMobileCalendarOpen)}>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs text-slate-500 uppercase font-bold">Semana {selectedWeek}</span>
-                                    <Calendar size={14} className={`text-indigo-400 transition-transform ${isMobileCalendarOpen ? 'rotate-180' : ''}`} />
-                                </div>
+                            <div className="flex flex-col items-center">
+                                <span className="text-xs text-slate-500 uppercase font-bold">Semana {selectedWeek}</span>
                                 <span className="text-sm text-white font-bold">{format(weekStartDate, 'd MMM', { locale: es })} - {format(weekEndDate, 'd MMM', { locale: es })}</span>
                             </div>
 
                             <button onClick={() => onWeekChange(1)} className="p-2 text-slate-400 hover:text-white"><ChevronRight size={20} /></button>
                         </div>
 
-                        {/* Collapsible Mobile Calendar Panel */}
-                        {isMobileCalendarOpen && (
-                            <div className="border-t border-slate-800/50 bg-slate-900/50 p-4 animate-in slide-in-from-top-2 fade-in duration-200">
-                                <div className="flex justify-center">
-                                    <MiniCalendar
-                                        selectedWeek={selectedWeek}
-                                        selectedYear={selectedYear}
-                                        onGoToDate={(date) => {
-                                            onGoToDate(date);
-                                            setIsMobileCalendarOpen(false); // Close on selection
-                                        }}
-                                    />
-                                </div>
-                            </div>
-                        )}
+                        {/* 2. Permanent MiniCalendar Panel (Mobile) */}
+                        <div className="border-t border-slate-800/50 bg-slate-900/30 p-4 pb-6 flex justify-center">
+                            <MiniCalendar
+                                selectedWeek={selectedWeek}
+                                selectedYear={selectedYear}
+                                onGoToDate={onGoToDate}
+                            />
+                        </div>
                     </div>
 
 
