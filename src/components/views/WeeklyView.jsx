@@ -102,14 +102,12 @@ const WeeklyView = ({ selectedWeek, selectedYear, clases, onWeekChange, onEdit, 
                 </div>
 
                 {/* MOBILE ONLY: Independent MiniCalendar Panel (Top) */}
-                <div className="md:hidden flex-none mb-4 z-40">
-                    <div className="bg-[#0f1221] border border-slate-800/50 rounded-2xl p-4 shadow-lg flex justify-center">
-                        <MiniCalendar
-                            selectedWeek={selectedWeek}
-                            selectedYear={selectedYear}
-                            onGoToDate={onGoToDate}
-                        />
-                    </div>
+                <div className="md:hidden flex-none mb-4 z-40 flex justify-center">
+                    <MiniCalendar
+                        selectedWeek={selectedWeek}
+                        selectedYear={selectedYear}
+                        onGoToDate={onGoToDate}
+                    />
                 </div>
 
                 {/* 2. Week Info (Desktop) */}
