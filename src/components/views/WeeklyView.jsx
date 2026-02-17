@@ -84,22 +84,32 @@ const WeeklyView = ({ selectedWeek, selectedYear, clases, onWeekChange, onEdit, 
             {/* Main Content */}
             <div className="flex flex-col flex-grow h-full bg-[#020617]/30 backdrop-blur-sm overflow-hidden p-2 md:p-6 relative">
 
-                {/* 1. Month & Year (Top Right) */}
-                <div className="absolute top-2 right-4 md:top-6 md:right-8 z-10 text-right pointer-events-none select-none">
+                {/* 1. Month & Year (Top Right) - Hidden on Mobile */}
+                <div className="hidden md:block absolute top-2 right-4 md:top-6 md:right-8 z-10 text-right pointer-events-none select-none">
                     <h1 className="text-3xl md:text-5xl font-bold text-slate-100 tracking-tight leading-none drop-shadow-lg opacity-90">
                         {format(weekStartDate, 'MMMM', { locale: es }).charAt(0).toUpperCase() + format(weekStartDate, 'MMMM', { locale: es }).slice(1)}
                     </h1>
                     <p className="text-xl md:text-2xl text-slate-500 font-light tracking-widest mt-1 mr-1">{selectedYear}</p>
                 </div>
 
-                {/* 2. Navigation Row */}
-                {/* Mini Calendar Panel - Hidden on Mobile here (moved to collapsible), Visible on Desktop */}
+                {/* 2. Navigation Row (Desktop) */}
                 <div className="flex-none -mb-[93px] flex justify-start z-50 origin-top-left scale-[0.6] md:scale-[0.7] hidden md:flex">
                     <MiniCalendar
                         selectedWeek={selectedWeek}
                         selectedYear={selectedYear}
                         onGoToDate={onGoToDate}
                     />
+                </div>
+
+                {/* MOBILE ONLY: Independent MiniCalendar Panel (Top) */}
+                <div className="md:hidden flex-none mb-4 z-40">
+                    <div className="bg-[#0f1221] border border-slate-800/50 rounded-2xl p-4 shadow-lg flex justify-center">
+                        <MiniCalendar
+                            selectedWeek={selectedWeek}
+                            selectedYear={selectedYear}
+                            onGoToDate={onGoToDate}
+                        />
+                    </div>
                 </div>
 
                 {/* 2. Week Info (Desktop) */}
@@ -125,30 +135,18 @@ const WeeklyView = ({ selectedWeek, selectedYear, clases, onWeekChange, onEdit, 
                 </div>
 
                 {/* Unified Scrollable Container wrapped in Panel Style */}
-                <div className="flex-grow flex flex-col bg-[#0f1221] border border-slate-800/50 rounded-2xl shadow-lg run-flow-root relative overflow-hidden mt-12 md:mt-0">
+                <div className="flex-grow flex flex-col bg-[#0f1221] border border-slate-800/50 rounded-2xl shadow-lg run-flow-root relative overflow-hidden md:mt-0">
 
-                    {/* Mobile Header (Date Navigation) */}
-                    <div className="md:hidden flex flex-col border-b border-slate-800/50 bg-[#0f1221] sticky top-0 z-50">
-                        {/* 1. Week Navigation */}
-                        <div className="flex justify-between items-center p-4 bg-[#0f1221] z-50 relative">
-                            <button onClick={() => onWeekChange(-1)} className="p-2 text-slate-400 hover:text-white"><ChevronLeft size={20} /></button>
+                    {/* Mobile Header (Date Navigation Only) */}
+                    <div className="md:hidden flex justify-between items-center p-4 border-b border-slate-800/50 bg-[#0f1221] sticky top-0 z-50">
+                        <button onClick={() => onWeekChange(-1)} className="p-2 text-slate-400 hover:text-white bg-slate-800/50 rounded-lg"><ChevronLeft size={20} /></button>
 
-                            <div className="flex flex-col items-center">
-                                <span className="text-xs text-slate-500 uppercase font-bold">Semana {selectedWeek}</span>
-                                <span className="text-sm text-white font-bold">{format(weekStartDate, 'd MMM', { locale: es })} - {format(weekEndDate, 'd MMM', { locale: es })}</span>
-                            </div>
-
-                            <button onClick={() => onWeekChange(1)} className="p-2 text-slate-400 hover:text-white"><ChevronRight size={20} /></button>
+                        <div className="flex flex-col items-center">
+                            <span className="text-xs text-slate-500 uppercase font-bold tracking-widest">Semana {selectedWeek}</span>
+                            <span className="text-sm text-white font-bold">{format(weekStartDate, 'd MMM', { locale: es })} - {format(weekEndDate, 'd MMM', { locale: es })}</span>
                         </div>
 
-                        {/* 2. Permanent MiniCalendar Panel (Mobile) */}
-                        <div className="border-t border-slate-800/50 bg-slate-900/30 p-4 pb-6 flex justify-center">
-                            <MiniCalendar
-                                selectedWeek={selectedWeek}
-                                selectedYear={selectedYear}
-                                onGoToDate={onGoToDate}
-                            />
-                        </div>
+                        <button onClick={() => onWeekChange(1)} className="p-2 text-slate-400 hover:text-white bg-slate-800/50 rounded-lg"><ChevronRight size={20} /></button>
                     </div>
 
 
