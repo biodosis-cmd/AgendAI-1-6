@@ -5,10 +5,10 @@ import { es } from 'date-fns/locale';
 import { DIAS_SEMANA, START_HOUR, END_HOUR, PIXELS_PER_MINUTE } from '@/constants';
 import ClaseCard from '@/components/common/ClaseCard';
 import { getSchoolYearConfig } from '@/services/db';
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Sparkles, BookOpen } from 'lucide-react';
 import MiniCalendar from './MiniCalendar';
 
-const WeeklyView = ({ selectedWeek, selectedYear, clases, onWeekChange, onEdit, onDelete, onExpand, userId, onGoToDate }) => {
+const WeeklyView = ({ selectedWeek, selectedYear, clases, onWeekChange, onEdit, onDelete, onExpand, userId, onGoToDate, onOpenAiModal, onOpenUnitPlanner }) => {
     const weekStartDate = getStartDateOfWeek(selectedYear, selectedWeek);
     const weekEndDate = new Date(weekStartDate);
     weekEndDate.setDate(weekEndDate.getDate() + 4);
@@ -102,12 +102,31 @@ const WeeklyView = ({ selectedWeek, selectedYear, clases, onWeekChange, onEdit, 
                 </div>
 
                 {/* MOBILE ONLY: Independent MiniCalendar Panel (Top) */}
-                <div className="md:hidden flex-none mb-4 z-40 flex justify-center">
-                    <MiniCalendar
-                        selectedWeek={selectedWeek}
-                        selectedYear={selectedYear}
-                        onGoToDate={onGoToDate}
-                    />
+                <div className="md:hidden flex-none mb-4 z-40 flex flex-col gap-3">
+                    <div className="flex justify-center">
+                        <MiniCalendar
+                            selectedWeek={selectedWeek}
+                            selectedYear={selectedYear}
+                            onGoToDate={onGoToDate}
+                        />
+                    </div>
+                    {/* Mobile Planning Actions */}
+                    <div className="flex justify-center gap-4 px-4">
+                        <button
+                            onClick={onOpenAiModal}
+                            className="h-10 w-10 flex items-center justify-center rounded-xl bg-indigo-600 text-white shadow-lg active:scale-95 transition-all"
+                            title="Planificar con IA"
+                        >
+                            <Sparkles size={20} />
+                        </button>
+                        <button
+                            onClick={onOpenUnitPlanner}
+                            className="h-10 w-10 flex items-center justify-center rounded-xl bg-[#0f1221] border border-slate-800 text-slate-300 active:scale-95 transition-all"
+                            title="Unidades"
+                        >
+                            <BookOpen size={20} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* 2. Week Info (Desktop) */}
@@ -117,7 +136,25 @@ const WeeklyView = ({ selectedWeek, selectedYear, clases, onWeekChange, onEdit, 
                 </div>
 
                 {/* 3. Navigation Buttons (Desktop) */}
-                <div className="hidden md:flex absolute top-[200px] right-8 z-20 gap-2">
+                <div className="hidden md:flex absolute top-[200px] right-8 z-20 gap-2 items-center">
+                    {/* Desktop Planning Actions (Icon Only) */}
+                    <button
+                        onClick={onOpenAiModal}
+                        className="h-8 w-8 flex items-center justify-center rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 transition-all hover:scale-105 active:scale-95 border border-indigo-400/20 mr-1"
+                        title="Planificación Rápida (IA)"
+                    >
+                        <Sparkles size={16} />
+                    </button>
+                    <button
+                        onClick={onOpenUnitPlanner}
+                        className="h-8 w-8 flex items-center justify-center rounded-full bg-[#0f1221] hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 hover:border-slate-500 transition-all mr-3"
+                        title="Gestionar Unidades"
+                    >
+                        <BookOpen size={16} />
+                    </button>
+
+                    <div className="h-6 w-px bg-slate-700/50 mx-1"></div>
+
                     <button
                         onClick={() => onWeekChange(-1)}
                         className="h-8 w-8 flex items-center justify-center rounded-full bg-slate-800/50 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700/50 hover:border-slate-600 transition-all active:scale-95 shadow-lg backdrop-blur-sm"
