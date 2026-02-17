@@ -90,25 +90,31 @@ const UnitModal = ({ isOpen, onClose, userId, unitToEdit, selectedYear, selected
         return Array.from({ length: 12 }, (_, i) => new Date(selectedYear, i, 1));
     }, [selectedYear]);
 
-    // Helper: Is Valid Class Day?
-    const isClassDay = (date, curso, asignatura) => {
-        if (!curso || !asignatura) return false;
+    // Helper: Get Class Minutes for a Day
+    const getClassMinutes = (date, curso, asignatura) => {
+        if (!curso || !asignatura) return 0;
         const activeSchedule = schedules?.[0]?.scheduleData;
-        if (!activeSchedule?.[curso]?.[asignatura]) return false;
+        if (!activeSchedule?.[curso]?.[asignatura]) return 0;
 
         const blocks = activeSchedule[curso][asignatura];
         const dayOfWeek = date.getDay(); // 0-6
 
         // Map schedule 'dia' (which might be "Lunes" or 1) to 0-6
-        // Assumes standardized check from before
         const dayMap = { 'Domingo': 0, 'Sunday': 0, 'Lunes': 1, 'Monday': 1, 'Martes': 2, 'Tuesday': 2, 'Miércoles': 3, 'Miercoles': 3, 'Wednesday': 3, 'Jueves': 4, 'Thursday': 4, 'Viernes': 5, 'Friday': 5, 'Sábado': 6, 'Saturday': 6 };
 
-        return blocks.some(b => {
+        // Filter blocks for this day
+        const dayBlocks = blocks.filter(b => {
             const d = b.dia !== undefined ? b.dia : b.day;
             const mapped = typeof d === 'string' ? dayMap[d] : d;
             return mapped === dayOfWeek;
         });
+
+        // Sum duration
+        return dayBlocks.reduce((sum, b) => sum + (parseInt(b.duration) || 0), 0);
     };
+
+    // Helper: Is Valid Class Day? (Wrapper for compatibility)
+    const isClassDay = (date, curso, asignatura) => getClassMinutes(date, curso, asignatura) > 0;
 
     // Helper: Is Holiday?
     const getExclusion = (date) => {
@@ -179,24 +185,33 @@ const UnitModal = ({ isOpen, onClose, userId, unitToEdit, selectedYear, selected
         let valid = 0;
         let excluded = 0;
         let blocked = 0;
+        let totalMinutes = 0;
 
         const start = new Date(formData.fechaInicio + 'T00:00:00');
         const end = new Date(formData.fechaTermino + 'T00:00:00');
         const cur = new Date(start);
 
         while (cur <= end) {
-            const isCls = isClassDay(cur, formData.curso, formData.asignatura);
+            const minutes = getClassMinutes(cur, formData.curso, formData.asignatura);
             const exc = getExclusion(cur);
             const blk = getBlockedByUnit(cur);
 
-            if (isCls) {
+            if (minutes > 0) {
                 if (exc) excluded++;
                 else if (blk) blocked++;
-                else valid++;
+                else {
+                    valid++;
+                    totalMinutes += minutes;
+                }
             }
             cur.setDate(cur.getDate() + 1);
         }
-        return { valid, excluded, blocked };
+
+        // Calculate Pedagogical Hours (45 min = 1 hour)
+        // Round to 1 decimal if needed, or integer? Usually integers or 0.5. Let's start with 1 decimal.
+        const pedagogicalHours = parseFloat((totalMinutes / 45).toFixed(1));
+
+        return { valid, excluded, blocked, pedagogicalHours };
     }, [formData.fechaInicio, formData.fechaTermino, formData.curso, formData.asignatura, schoolYearConfig, units]);
 
 
@@ -210,31 +225,30 @@ Asignatura: "${formData.asignatura}"
 Unidad N°: ${formData.numero}
 Título: "${formData.nombre}"
 Duración: ${formData.fechaInicio} al ${formData.fechaTermino}
-${formData.objetivos ? `Contexto: "${formData.objetivos}"` : ''}
+Contexto Temporal: ${stats.valid} clases reales totales (${stats.pedagogicalHours} horas pedagógicas totales para esta unidad).
+${formData.objetivos ? `Contexto Adicional: "${formData.objetivos}"` : ''}
 
 MARCO DE HABILIDADES DEL SIGLO XXI (OBLIGATORIO):
-Debes integrar explícitamente competencias del modelo de "Aprendizaje Profundo" (Las 6C):
-1. Carácter (Resiliencia, autorregulación)
-2. Ciudadanía (Visión global, sostenibilidad)
-3. Colaboración (Trabajo en equipo, empatía)
-4. Comunicación (Claridad, diversas herramientas)
-5. Creatividad (Soluciones nuevas, audacia)
-6. Pensamiento Crítico (Evaluar información, resolver problemas)
+Debes integrar explícitamente competencias del modelo de "Aprendizaje Profundo" (Las 6C).
+
+INSTRUCCIONES DE TIEMPO (CRÍTICO):
+Debes distribuir las ${stats.pedagogicalHours} horas pedagógicas disponibles entre los Objetivos de Aprendizaje (OAs) seleccionados, considerando su complejidad.
+Formato obligatorio para el campo "tiempo": "X semanas (Y horas pedagógicas)". Asegúrate de que la suma total de horas pedagógicas sea aproximada a ${stats.pedagogicalHours}.
 
 INSTRUCCIONES DE FORMATO (OBLIGATORIO):
 Respuesta UNICAMENTE JSON válido:
 {
-  "objetivos": "Descripción técnica",
+  "objetivos": "Descripción técnica de los propósitos de la unidad",
   "oat": ["OAT seleccionado"],
   "habilidades": ["Habilidad del Siglo XXI seleccionada"],
   "ejes": ["Eje temático"],
   "tipoEvaluacion": "Sumativa",
   "detalles": [
     {
-      "oa": "Código y descripción OA",
-      "tiempo": "Ej: 2 semanas",
+      "oa": "Código y descripción OA seleccionado",
+      "tiempo": "Ej: 2 semanas (6 horas pedagógicas)",
       "indicadores": ["Indicador de evaluación 1", "Indicador de evaluación 2"],
-      "instrumento": "Rúbrica"
+      "instrumento": "Rúbrica o Lista de Cotejo"
     }
   ]
 }`;
@@ -323,12 +337,12 @@ Respuesta UNICAMENTE JSON válido:
                         {month.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}
                     </h3>
                     <div className="grid grid-cols-7 gap-1">
-                        {['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'].map(d => (
+                        {['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'].map(d => (
                             <div key={d} className="text-center text-[10px] text-slate-600 font-bold uppercase py-1">{d}</div>
                         ))}
 
-                        {/* Padding for first day */}
-                        {Array.from({ length: new Date(month.getFullYear(), month.getMonth(), 1).getDay() }).map((_, i) => (
+                        {/* Padding for first day (Monday start) */}
+                        {Array.from({ length: (new Date(month.getFullYear(), month.getMonth(), 1).getDay() + 6) % 7 }).map((_, i) => (
                             <div key={`pad-${i}`} />
                         ))}
 
@@ -418,7 +432,7 @@ Respuesta UNICAMENTE JSON válido:
                 <div className="flex justify-between items-center p-6 border-b border-slate-800 bg-slate-900/50">
                     <div>
                         <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                            <Sparkles className="text-indigo-400" /> Nueva Unidad <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded border border-indigo-500/30">Visual Creator</span>
+                            <Sparkles className="text-indigo-400" /> Nueva Unidad
                         </h2>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white"><X /></button>
@@ -474,8 +488,12 @@ Respuesta UNICAMENTE JSON válido:
                                         <span>Clases Reales:</span>
                                         <span className="text-lg">{stats.valid}</span>
                                     </div>
+                                    <div className="flex justify-between items-center text-indigo-400 font-bold border-t border-slate-700/50 pt-1 mt-1">
+                                        <span>Horas Pedagógicas:</span>
+                                        <span className="text-lg">{stats.pedagogicalHours} hrs</span>
+                                    </div>
                                     {stats.excluded > 0 && (
-                                        <div className="flex justify-between items-center text-amber-400 text-xs">
+                                        <div className="flex justify-between items-center text-amber-400 text-xs mt-2">
                                             <span>Feriados (Ignorados):</span>
                                             <span>{stats.excluded}</span>
                                         </div>

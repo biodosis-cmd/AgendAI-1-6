@@ -519,7 +519,7 @@ Requisitos de Calidad de la Respuesta:
                 <div className="flex justify-between items-center mb-6 border-b border-slate-700/50 pb-4">
                     <div className="flex items-center gap-4">
                         <h3 className="text-xl font-bold flex items-center gap-2 text-purple-400">
-                            <Sparkles className="text-purple-400" /> Generador con IA
+
                         </h3>
                         {/* ... (Date nav omitted) */}
                         <div className="flex items-center bg-slate-800 rounded-full p-1 pl-1 pr-1 border border-slate-700 shadow-sm">
