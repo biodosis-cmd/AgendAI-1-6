@@ -49,7 +49,7 @@ const UnitModal = ({ isOpen, onClose, userId, unitToEdit, selectedYear, selected
         oat: [],
         habilidades: [],
         ejes: [],
-        tipoEvaluacion: 'Sumativa',
+        tipoEvaluacion: '',
         detalles: []
     };
 
@@ -242,7 +242,7 @@ Respuesta UNICAMENTE JSON válido:
   "oat": ["OAT seleccionado"],
   "habilidades": ["Habilidad del Siglo XXI seleccionada"],
   "ejes": ["Eje temático"],
-  "tipoEvaluacion": "Sumativa",
+  "tipoEvaluacion": "${formData.tipoEvaluacion || 'Sumativa'}",
   "detalles": [
     {
       "oa": "Código y descripción OA seleccionado",
@@ -498,6 +498,7 @@ Respuesta UNICAMENTE JSON válido:
                                     <input type="number" min="1" value={formData.numero} onChange={e => setFormData(p => ({ ...p, numero: e.target.value }))} className="w-16 bg-slate-800 border-slate-700 rounded-lg p-2 text-sm text-center font-bold text-white" placeholder="#" />
                                     <input type="text" value={formData.nombre} onChange={e => setFormData(p => ({ ...p, nombre: e.target.value }))} className="flex-1 bg-slate-800 border-slate-700 rounded-lg p-2 text-sm text-white" placeholder="Título de la Unidad" />
                                 </div>
+                                <input type="text" value={formData.tipoEvaluacion} onChange={e => setFormData(p => ({ ...p, tipoEvaluacion: e.target.value }))} className="w-full bg-slate-800 border-slate-700 rounded-lg p-2 text-sm text-white" placeholder="Tipo de Evaluación (ej: Sumativa, Formativa, Mixta...)" />
                                 <textarea value={formData.objetivos} onChange={e => setFormData(p => ({ ...p, objetivos: e.target.value }))} className="w-full h-24 bg-slate-800 border-slate-700 rounded-lg p-2 text-sm text-white resize-none" placeholder="Contexto u objetivos específicos para la IA..." />
                             </div>
                         </div>
