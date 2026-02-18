@@ -143,6 +143,8 @@ const AppContent = () => {
                     userId={currentUser?.id}
                     currentUser={currentUser} // Pass currentUser for header integration
                     onGoToDate={actions.goToDate}
+                    onOpenAiModal={() => openModal('aiGeneration', { onClassesGenerated: handleSaveGeneratedClasses, selectedYear, selectedWeek, schedules, units })}
+                    onOpenUnitPlanner={handleOpenUnitPlanner}
                 />}
                 {view === 'report' && <ReportView userId={userId} clases={clases} units={units} onBack={() => actions.setView('calendar')} selectedYear={selectedYear} onEditClase={handleEditClase} onDelete={handleDelete} onDeleteMultiple={handleDeleteMultiple} />}
                 {view === 'units' && <UnitsView units={units.filter(u => new Date(u.fechaInicio).getFullYear() === selectedYear)} clases={filteredClasses} userId={userId} onBack={() => actions.setView('calendar')} onEditClase={handleEditClase} onDelete={handleDeleteUnit} selectedYear={selectedYear} selectedWeek={selectedWeek} schedules={schedules} />}

@@ -444,27 +444,39 @@ Requisitos de Calidad de la Respuesta:
 
         setGeneratedPrompt(finalPrompt.trim());
 
-        // AUTO-COPY AND ADVANCE
-        navigator.clipboard.writeText(finalPrompt.trim())
-            .then(() => {
-                setIsCopied(true); // Reusing this for the toast
-                setStep(3); // Jump directly to paste
-                setTimeout(() => setIsCopied(false), 4000); // 4 seconds toast
-            })
-            .catch(err => {
-                console.error("Error al copiar:", err);
-                setError('No se pudo copiar automáticamente. Por favor copia el texto manualmente en el paso anterior.');
-                setStep(2); // Fallback to manual copy step
-            });
+        setGeneratedPrompt(finalPrompt.trim());
+
+        // AUTO-COPY AND ADVANCE (With Safety Check for Non-Secure Contexts)
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(finalPrompt.trim())
+                .then(() => {
+                    setIsCopied(true); // Reusing this for the toast
+                    setStep(3); // Jump directly to paste
+                    setTimeout(() => setIsCopied(false), 4000); // 4 seconds toast
+                })
+                .catch(err => {
+                    console.error("Error al copiar:", err);
+                    // Fallback to manual copy step
+                    setStep(2);
+                });
+        } else {
+            // Fallback for environments where Clipboard API is not available (e.g. HTTP LAN)
+            setStep(2);
+        }
     };
 
     const copyToClipboard = async () => {
-        try {
-            await navigator.clipboard.writeText(generatedPrompt);
-            setIsCopied(true);
-            setTimeout(() => setIsCopied(false), 2000);
-        } catch (err) {
-            setError('Error al copiar al portapapeles.');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            try {
+                await navigator.clipboard.writeText(generatedPrompt);
+                setIsCopied(true);
+                setTimeout(() => setIsCopied(false), 2000);
+            } catch (err) {
+                setError('Error al copiar al portapapeles.');
+            }
+        } else {
+            // Fallback: Select the text so user can copy manually
+            setError('Tu navegador no soporta copiado automático. Por favor selecciona y copia el texto manualmente.');
         }
     };
 
