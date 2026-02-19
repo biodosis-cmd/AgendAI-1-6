@@ -218,7 +218,10 @@ const UnitModal = ({ isOpen, onClose, userId, unitToEdit, selectedYear, selected
     // --- 3. AI & SUBMIT LOGIC ---
     const generatePrompt = () => {
         return `
-Rol: Actúa como un Especialista en Currículum Nacional Chileno y Experto en Aprendizaje Profundo (Deep Learning - Michael Fullan).
+ROL DE FORMATO (OBLIGATORIO): Actúa como una API REST estricta. Tu única función es recibir datos y devolver un JSON puro. NO hables, NO expliques, NO uses markdown.
+
+ROL PEDAGÓGICO (EL EXPERTO): Actúa como un Especialista en Currículum Nacional Chileno y Experto en Aprendizaje Profundo (Deep Learning - Michael Fullan).
+
 Tarea: Diseñar Planificación de Unidad Didáctica.
 Curso: "${formData.curso}"
 Asignatura: "${formData.asignatura}"
@@ -251,7 +254,9 @@ Respuesta UNICAMENTE JSON válido:
       "instrumento": "Rúbrica o Lista de Cotejo"
     }
   ]
-}`;
+}
+
+IMPORTANTE: Revisa tu respuesta paso a paso. Asegúrate de que no haya comas al final de las listas (trailing commas) antes de responder.`;
     };
 
     const handleCopy = () => {
@@ -264,12 +269,47 @@ Respuesta UNICAMENTE JSON válido:
 
     const handleProcess = () => {
         try {
-            const clean = jsonInput.replace(/```json/g, '').replace(/```/g, '').trim();
+            // 1. Sanitización Robusta (Neuro-Cleaner)
+            let clean = jsonInput
+                .replace(/```json/g, '')  // Quitar markdown
+                .replace(/```/g, '')
+                .trim();
+
+            // Reparar Trailing Commas (comas antes de } o ])
+            clean = clean.replace(/,(\s*[}\]])/g, '$1');
+
             const data = JSON.parse(clean);
-            setFormData(prev => ({ ...prev, ...data }));
-            setStep(4); // Go to Review/Edit Step
+
+            // 2. Smart Adapter (Detector de Flujo)
+            if (Array.isArray(data)) {
+                // MODO CLASES RÁPIDAS (Array de Clases)
+                // Convertimos cada clase en un detalle de la unidad
+                const newDetalles = data.map(clase => ({
+                    oa: clase.objetivo || clase.OA || clase.description || "Objetivo de clase importada",
+                    tiempo: clase.duracion || "1 clase", // Intentar extraer duración
+                    instrumento: "Observación directa",
+                    indicadores: [],
+                    // Guardamos el resto de la data (inicio, desarrollo, cierre) en el OA para no perderla,
+                    // o podríamos dejarlo solo en el objetivo si el usuario prefiere limpieza.
+                    // Por ahora, priorizamos el objetivo.
+                }));
+
+                setFormData(prev => ({
+                    ...prev,
+                    detalles: [...(prev.detalles || []), ...newDetalles] // Adjuntamos a lo existente
+                }));
+                // Feedback visual sutil (opcional, por ahora solo avanzamos)
+            } else {
+                // MODO UNIDAD ESTÁNDAR (Objeto Completo)
+                // Reemplazo total como funcionaba antes
+                setFormData(prev => ({ ...prev, ...data }));
+            }
+
+            setStep(4); // Ir al Editor
+            setError('');
         } catch (e) {
-            setError('Error al procesar JSON');
+            console.error(e);
+            setError('Error al procesar JSON: ' + e.message);
         }
     };
 

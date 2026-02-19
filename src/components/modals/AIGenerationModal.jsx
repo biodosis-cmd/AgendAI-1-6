@@ -401,7 +401,9 @@ INSTRUCCIÓN: Genera una planificación secuencial y coherente para cubrir estos
         }
 
         const finalPrompt = `
-rol: Actúa como un experto en Diseño Universal para el Aprendizaje (DUA) y especialista en el Currículum Nacional de Chile del MINEDUC.
+ROL DE FORMATO (OBLIGATORIO): Actúa como una API REST estricta. Tu única función es recibir datos y devolver un JSON puro. NO hables, NO expliques, NO uses markdown.
+
+ROL PEDAGÓGICO (EL EXPERTO): Actúa como un experto en Diseño Universal para el Aprendizaje (DUA) y especialista en el Currículum Nacional de Chile del MINEDUC.
 
 Tarea: Tu misión es planificar experiencias de aprendizaje, unidades o clases. Para ello, debes utilizar exclusivamente las Bases Curriculares vigentes según el nivel solicitado:
 - Parvularia: Decreto 481 (2018).
@@ -440,7 +442,9 @@ IMPORTANTE: Inicia cada sección indicando el tiempo, ej: "(15 min): ...".
 Requisitos de Calidad de la Respuesta:
 1. Lenguaje: Español, tono profesional y motivador.
 2. Formato de Salida: ÚNICAMENTE un array JSON válido (sin markdown).
-3. Estructura del JSON: Array de objetos con claves: "objetivo" (string), "inicio" (string), "desarrollo" (string), "aplicacion" (string), "cierre" (string).`;
+3. Estructura del JSON: Array de objetos con claves: "objetivo" (string), "inicio" (string), "desarrollo" (string), "aplicacion" (string), "cierre" (string).
+
+IMPORTANTE: Revisa tu respuesta paso a paso. Asegúrate de que no haya comas al final de las listas (trailing commas) antes de responder.`;
 
         setGeneratedPrompt(finalPrompt.trim());
 
