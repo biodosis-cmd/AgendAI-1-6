@@ -6,6 +6,7 @@ import { generateAnnualPlanPDF } from '@/utils/annualPlanPdf';
 import { generateAnnualPlanWord } from '@/utils/annualPlanWord';
 import { User } from 'lucide-react';
 import { useUI } from '@/context/UIContext'; // Import Context
+import { CURSO_COLORES } from '@/constants';
 
 const extractOACodes = (details) => {
     if (!details) return [];
@@ -23,7 +24,32 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
     const [expandedUnitId, setExpandedUnitId] = useState(null);
     const [viewMode, setViewMode] = useState('list'); // Default to list for easy access
     const [teacherName, setTeacherName] = useState('');
+    const [expandedCourses, setExpandedCourses] = useState({});
     const displayYear = validYear || schedules?.[0]?.validYear || new Date().getFullYear();
+
+    // Helper: Fuzzy Color Lookup for Course Letters
+    const getColorForCourse = (courseName) => {
+        if (!courseName) return 'bg-slate-600';
+        // 1. Try exact match (e.g. "8vo Básico" or "2do Básico A")
+        if (CURSO_COLORES[courseName]) return CURSO_COLORES[courseName];
+
+        // 2. Try stripping suffix (e.g. "7mo Básico A" -> "7mo Básico")
+        const parts = courseName.split(' ');
+        if (parts.length >= 2 && parts[parts.length - 1].length === 1) {
+            const baseName = parts.slice(0, -1).join(' ');
+            if (CURSO_COLORES[baseName]) return CURSO_COLORES[baseName];
+        }
+
+        // 3. Fallback to generic colors if it has a letter but base isn't found
+        return 'bg-slate-600';
+    };
+
+    const toggleCourse = (courseKey) => {
+        setExpandedCourses(prev => ({
+            ...prev,
+            [courseKey]: !prev[courseKey]
+        }));
+    };
 
     const handleOpenModal = (unit = null) => {
         setUnitToEdit(unit);
@@ -57,6 +83,7 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
 
     const unitsByCourse = useMemo(() => {
         return units.reduce((acc, unit) => {
+            // Keep the exact course name which might include the letter
             const key = `${unit.curso} - ${unit.asignatura}`;
             if (!acc[key]) acc[key] = [];
             acc[key].push(unit);
@@ -129,100 +156,124 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
                 <TimelineView units={units} onEditUnit={handleOpenModal} selectedYear={selectedYear} />
             ) : (
                 <div className="space-y-8">
-                    {Object.keys(unitsByCourse).sort().map(courseKey => (
-                        <div key={courseKey}>
-                            <div className="flex justify-between items-center mb-4 border-b border-slate-700/50 pb-2 pl-2 border-l-4 border-l-indigo-500">
-                                <h3 className="text-2xl font-semibold text-slate-200">{courseKey}</h3>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => handleExportPDF(courseKey, unitsByCourse[courseKey])}
-                                        className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-400 rounded-lg text-sm transition-colors border border-slate-700"
-                                        title="Exportar a PDF"
-                                    >
-                                        <FileDown size={16} /> PDF
-                                    </button>
-                                    <button
-                                        onClick={() => handleExportWord(courseKey, unitsByCourse[courseKey])}
-                                        className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-lg text-sm transition-colors border border-slate-700"
-                                        title="Exportar a Word"
-                                    >
-                                        <FileText size={16} /> Word
-                                    </button>
+                    {Object.keys(unitsByCourse).sort().map(courseKey => {
+                        // In unitsByCourse, courseKey is "Curso - Asignatura". 
+                        // The color should be based on the exact Curso part, grouping by the letter if it has one.
+                        const cursoName = courseKey.split(' - ')[0].trim();
+                        const courseColorBg = getColorForCourse(cursoName);
+                        // Convert bg-color to border-color roughly by substituting 'bg-' with 'border-' 
+                        // Note: Tailwind handles these dynamically, but as a fallback/cleaner look we can just use the bg color
+                        // as a small leading indicator block.
+
+                        return (
+                            <div key={courseKey}>
+                                <div
+                                    className={`flex justify-between items-center mb-4 pb-2 pl-3 rounded-l-lg border-l-8 cursor-pointer hover:bg-slate-800/50 transition-colors relative overflow-hidden`}
+                                    style={{ borderColor: 'transparent' }}
+                                    onClick={() => toggleCourse(courseKey)}
+                                >
+                                    {/* Colored Left Bar using the same classes */}
+                                    <div className={`absolute left-0 top-0 bottom-0 w-2 ${courseColorBg}`}></div>
+                                    <div className="flex items-center gap-3">
+                                        <ChevronDown
+                                            className={`transition-transform duration-300 ${expandedCourses[courseKey] ? 'rotate-180' : '-rotate-90'} text-slate-400`}
+                                            size={20}
+                                        />
+                                        <h3 className="text-2xl font-semibold text-slate-200">{courseKey}</h3>
+                                    </div>
+                                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                                        <button
+                                            onClick={() => handleExportPDF(courseKey, unitsByCourse[courseKey])}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-400 rounded-lg text-sm transition-colors border border-slate-700"
+                                            title="Exportar a PDF"
+                                        >
+                                            <FileDown size={16} /> PDF
+                                        </button>
+                                        <button
+                                            onClick={() => handleExportWord(courseKey, unitsByCourse[courseKey])}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-lg text-sm transition-colors border border-slate-700"
+                                            title="Exportar a Word"
+                                        >
+                                            <FileText size={16} /> Word
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="space-y-4">
-                                {unitsByCourse[courseKey].sort((a, b) => (a.numero || 999) - (b.numero || 999)).map(unit => {
-                                    const isExpanded = expandedUnitId === unit.id;
-                                    const oaCodes = extractOACodes(unit.detalles);
-                                    const linkedClasses = clases.filter(clase => {
-                                        const claseDate = new Date(clase.fecha);
-                                        const startDate = new Date(unit.fechaInicio + 'T00:00:00');
-                                        const endDate = new Date(unit.fechaTermino + 'T23:59:59');
-                                        return clase.curso === unit.curso &&
-                                            clase.asignatura === unit.asignatura &&
-                                            claseDate >= startDate &&
-                                            claseDate <= endDate;
-                                    }).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+                                {expandedCourses[courseKey] && (
+                                    <div className="space-y-4">
+                                        {unitsByCourse[courseKey].sort((a, b) => (a.numero || 999) - (b.numero || 999)).map(unit => {
+                                            const isExpanded = expandedUnitId === unit.id;
+                                            const oaCodes = extractOACodes(unit.detalles);
+                                            const linkedClasses = clases.filter(clase => {
+                                                const claseDate = new Date(clase.fecha);
+                                                const startDate = new Date(unit.fechaInicio + 'T00:00:00');
+                                                const endDate = new Date(unit.fechaTermino + 'T23:59:59');
+                                                return clase.curso === unit.curso &&
+                                                    clase.asignatura === unit.asignatura &&
+                                                    claseDate >= startDate &&
+                                                    claseDate <= endDate;
+                                            }).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
-                                    return (
-                                        <div key={unit.id} className="card-glass rounded-xl transition-all duration-300 border border-slate-700/30 hover:border-indigo-500/30">
-                                            <div className="p-5 cursor-pointer" onClick={() => setExpandedUnitId(isExpanded ? null : unit.id)}>
-                                                <div className="flex justify-between items-center">
-                                                    <div>
-                                                        <h4 className="font-bold text-xl text-slate-100">
-                                                            {unit.numero ? `Unidad ${unit.numero}: ` : ''}{unit.nombre}
-                                                        </h4>
-                                                        <p className="text-sm text-slate-400 mt-1">
-                                                            {new Date(unit.fechaInicio + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })} - {new Date(unit.fechaTermino + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                                            <span className="ml-4 inline-block bg-slate-800/80 border border-slate-700 text-indigo-300 text-xs font-semibold px-2.5 py-0.5 rounded-full">{linkedClasses.length} clases</span>
-                                                        </p>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <button onClick={(e) => { e.stopPropagation(); handleOpenModal(unit); }} className="p-2 rounded-lg hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-400 transition-colors"><Edit size={18} /></button>
-                                                        <button onClick={(e) => { e.stopPropagation(); onDelete(unit); }} className="p-2 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors"><Trash2 size={18} /></button>
-                                                        <ChevronDown className={`transition-transform duration-300 text-slate-500 ${isExpanded ? 'rotate-180' : ''}`} />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {isExpanded && (
-                                                <div className="border-t border-slate-700/50 p-5 bg-slate-800/20">
-                                                    <h5 className="font-semibold text-lg mb-2 text-indigo-300">Objetivos de la Unidad</h5>
-                                                    <p className="text-slate-300 whitespace-pre-wrap text-sm mb-6 leading-relaxed bg-slate-900/30 p-3 rounded-lg border border-slate-700/30">{unit.objetivos || 'No hay objetivos definidos.'}</p>
-
-                                                    {oaCodes.length > 0 && (
-                                                        <div className="mb-6">
-                                                            <h5 className="font-semibold text-sm uppercase tracking-wider mb-3 text-indigo-400">OA Específicos</h5>
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {oaCodes.map(oa => (
-                                                                    <span key={oa} className="px-2.5 py-1 bg-indigo-500/10 text-indigo-300 rounded-md text-xs font-bold border border-indigo-500/20 shadow-sm cursor-default hover:bg-indigo-500/20 transition-colors">
-                                                                        {oa}
-                                                                    </span>
-                                                                ))}
+                                            return (
+                                                <div key={unit.id} className="card-glass rounded-xl transition-all duration-300 border border-slate-700/30 hover:border-indigo-500/30">
+                                                    <div className="p-5 cursor-pointer" onClick={() => setExpandedUnitId(isExpanded ? null : unit.id)}>
+                                                        <div className="flex justify-between items-center">
+                                                            <div>
+                                                                <h4 className="font-bold text-xl text-slate-100">
+                                                                    {unit.numero ? `Unidad ${unit.numero}: ` : ''}{unit.nombre}
+                                                                </h4>
+                                                                <p className="text-sm text-slate-400 mt-1">
+                                                                    {new Date(unit.fechaInicio + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })} - {new Date(unit.fechaTermino + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                                    <span className="ml-4 inline-block bg-slate-800/80 border border-slate-700 text-indigo-300 text-xs font-semibold px-2.5 py-0.5 rounded-full">{linkedClasses.length} clases</span>
+                                                                </p>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <button onClick={(e) => { e.stopPropagation(); handleOpenModal(unit); }} className="p-2 rounded-lg hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-400 transition-colors"><Edit size={18} /></button>
+                                                                <button onClick={(e) => { e.stopPropagation(); onDelete(unit); }} className="p-2 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors"><Trash2 size={18} /></button>
+                                                                <ChevronDown className={`transition-transform duration-300 text-slate-500 ${isExpanded ? 'rotate-180' : ''}`} />
                                                             </div>
                                                         </div>
-                                                    )}
+                                                    </div>
+                                                    {isExpanded && (
+                                                        <div className="border-t border-slate-700/50 p-5 bg-slate-800/20">
+                                                            <h5 className="font-semibold text-lg mb-2 text-indigo-300">Objetivos de la Unidad</h5>
+                                                            <p className="text-slate-300 whitespace-pre-wrap text-sm mb-6 leading-relaxed bg-slate-900/30 p-3 rounded-lg border border-slate-700/30">{unit.objetivos || 'No hay objetivos definidos.'}</p>
 
-                                                    <h5 className="font-semibold text-lg mb-3 text-indigo-300">Clases Vinculadas</h5>
-                                                    {linkedClasses.length > 0 ? (
-                                                        <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                            {linkedClasses.map(clase => (
-                                                                <li key={clase.id} onClick={() => onEditClase(clase)} className="flex justify-between items-center p-3 rounded-lg bg-slate-800/50 border border-slate-700/30 hover:border-indigo-500/50 hover:bg-slate-800 transition-all cursor-pointer group">
-                                                                    <span className="text-slate-200 font-medium">{new Date(clase.fecha).toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
-                                                                    <span className="text-xs text-slate-500 group-hover:text-slate-300 truncate max-w-[150px] transition-colors">{clase.objetivo}</span>
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    ) : (
-                                                        <p className="text-slate-500 text-sm italic">No hay clases planificadas para esta unidad.</p>
+                                                            {oaCodes.length > 0 && (
+                                                                <div className="mb-6">
+                                                                    <h5 className="font-semibold text-sm uppercase tracking-wider mb-3 text-indigo-400">OA Específicos</h5>
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        {oaCodes.map(oa => (
+                                                                            <span key={oa} className="px-2.5 py-1 bg-indigo-500/10 text-indigo-300 rounded-md text-xs font-bold border border-indigo-500/20 shadow-sm cursor-default hover:bg-indigo-500/20 transition-colors">
+                                                                                {oa}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            <h5 className="font-semibold text-lg mb-3 text-indigo-300">Clases Vinculadas</h5>
+                                                            {linkedClasses.length > 0 ? (
+                                                                <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                                    {linkedClasses.map(clase => (
+                                                                        <li key={clase.id} onClick={() => onEditClase(clase)} className="flex justify-between items-center p-3 rounded-lg bg-slate-800/50 border border-slate-700/30 hover:border-indigo-500/50 hover:bg-slate-800 transition-all cursor-pointer group">
+                                                                            <span className="text-slate-200 font-medium">{new Date(clase.fecha).toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+                                                                            <span className="text-xs text-slate-500 group-hover:text-slate-300 truncate max-w-[150px] transition-colors">{clase.objetivo}</span>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            ) : (
+                                                                <p className="text-slate-500 text-sm italic">No hay clases planificadas para esta unidad.</p>
+                                                            )}
+                                                        </div>
                                                     )}
                                                 </div>
-                                            )}
-                                        </div>
-                                    )
-                                })}
+                                            )
+                                        })}
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    ))}
+                        )
+                    })}
                 </div>
             )}
             <UnitModal isOpen={unitModalOpen} onClose={handleCloseModal} userId={userId} unitToEdit={unitToEdit} selectedYear={selectedYear} selectedWeek={selectedWeek} schedules={schedules} units={units} />
