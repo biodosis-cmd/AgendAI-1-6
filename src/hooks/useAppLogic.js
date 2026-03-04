@@ -52,22 +52,26 @@ export const useAppLogic = () => {
         checkAndSeedSchedule();
     }, [userId]);
 
+    // Ref to prevent infinite year-sync loops when user manually changes year
+    const hasSyncedYear = useRef(false);
+
     // LICENSE ENFORCEMENT
     useEffect(() => {
-        if (schedules && schedules.length > 0) {
+        if (schedules && schedules.length > 0 && !hasSyncedYear.current) {
             const activeSchedule = schedules[0];
-            const currentRealYear = new Date().getFullYear();
 
             if (activeSchedule.validYear) {
+                // Lock the sync so it only happens once per session/load
+                hasSyncedYear.current = true;
+
                 // FORCE SYNC: If the schedule belongs to a different year (e.g. 2026) than selected,
                 // auto-switch the app to that year so the user sees the data immediately.
-                if (selectedYear !== activeSchedule.validYear && activeSchedule.validYear) {
-                    // console.log(`Auto-switching year from ${selectedYear} to ${activeSchedule.validYear}`);
+                if (selectedYear !== activeSchedule.validYear) {
                     actions.setSelectedYear(activeSchedule.validYear);
                 }
             }
         }
-    }, [schedules, actions]);
+    }, [schedules, selectedYear, actions]);
 
     const handleLogout = async () => {
         try {
