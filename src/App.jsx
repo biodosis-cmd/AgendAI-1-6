@@ -114,7 +114,7 @@ const AppContent = () => {
                     userId={userId} // Pass standardized ID
                     setView={actions.setView} // Pass setView for navigation
                     clases={filteredClasses}
-                    units={units.filter(u => new Date(u.fechaInicio).getFullYear() === selectedYear)}
+                    units={units.filter(u => !u.fechaInicio || new Date(u.fechaInicio).getFullYear() === selectedYear)}
                     schedules={schedules}
                     onNavigateToCalendar={() => actions.setView('calendar')}
                     onEditClass={handleEditClase}
@@ -147,7 +147,7 @@ const AppContent = () => {
                     onOpenUnitPlanner={handleOpenUnitPlanner}
                 />}
                 {view === 'report' && <ReportView userId={userId} clases={clases} units={units} onBack={() => actions.setView('calendar')} selectedYear={selectedYear} onEditClase={handleEditClase} onDelete={handleDelete} onDeleteMultiple={handleDeleteMultiple} />}
-                {view === 'units' && <UnitsView units={units.filter(u => new Date(u.fechaInicio).getFullYear() === selectedYear)} clases={filteredClasses} userId={userId} onBack={() => actions.setView('calendar')} onEditClase={handleEditClase} onDelete={handleDeleteUnit} selectedYear={selectedYear} selectedWeek={selectedWeek} schedules={schedules} />}
+                {view === 'units' && <UnitsView units={units.filter(u => !u.fechaInicio || new Date(u.fechaInicio).getFullYear() === selectedYear)} clases={filteredClasses} userId={userId} onBack={() => actions.setView('calendar')} onEditClase={handleEditClase} onDelete={handleDeleteUnit} selectedYear={selectedYear} selectedWeek={selectedWeek} schedules={schedules} />}
                 {view === 'schedules' && <SchedulesView userId={userId} schedules={schedules} onBack={() => actions.setView('calendar')} onEdit={handleEditSchedule} />}
                 {view === 'config' && <ConfigView userId={userId} selectedYear={selectedYear} />}
             </MainLayout>

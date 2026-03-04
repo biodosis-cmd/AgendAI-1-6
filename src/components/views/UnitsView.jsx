@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Edit, Trash2, ChevronDown, List as ListIcon, Calendar as TimelineIcon, FileDown, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronDown, List as ListIcon, Calendar as TimelineIcon, FileDown, FileText, Sparkles } from 'lucide-react';
 import UnitModal from '@/components/modals/UnitModal';
+import YearlyUnitGeneratorModal from '@/components/modals/YearlyUnitGeneratorModal';
 import TimelineView from './TimelineView';
 import { generateAnnualPlanPDF } from '@/utils/annualPlanPdf';
 import { generateAnnualPlanWord } from '@/utils/annualPlanWord';
@@ -20,6 +21,7 @@ const extractOACodes = (details) => {
 const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selectedYear, selectedWeek, schedules }) => {
     const { validYear, actions } = useUI(); // Get context
     const [unitModalOpen, setUnitModalOpen] = useState(false);
+    const [yearlyModalOpen, setYearlyModalOpen] = useState(false);
     const [unitToEdit, setUnitToEdit] = useState(null);
     const [expandedUnitId, setExpandedUnitId] = useState(null);
     const [viewMode, setViewMode] = useState('list'); // Default to list for easy access
@@ -128,7 +130,7 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
                     />
                 </div>
                 {/* View Toggle */}
-                <div className="bg-slate-800/50 p-1 rounded-xl border border-slate-700/50 flex">
+                <div className="bg-slate-800/50 p-1 rounded-xl border border-slate-700/50 flex flex-shrink-0">
                     <button
                         onClick={() => setViewMode('timeline')}
                         className={`p-2 rounded-lg transition-all ${viewMode === 'timeline' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
@@ -145,11 +147,18 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
                     </button>
                 </div>
 
-                <button onClick={() => handleOpenModal()} className="btn-primary px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl flex items-center gap-2 text-sm sm:text-base font-bold whitespace-nowrap">
-                    <Plus size={18} /> <span className="hidden sm:inline">Crear Unidad</span>
-                    <span className="sm:hidden">Crear</span>
-                </button>
-
+                <div className="flex gap-2">
+                    <button onClick={() => setYearlyModalOpen(true)} className="btn-secondary px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl flex items-center gap-2 text-sm sm:text-base font-bold whitespace-nowrap bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/30 transition-colors hidden md:flex">
+                        <Sparkles size={18} /> <span>Sincronizar NotebookLM</span>
+                    </button>
+                    <button onClick={() => setYearlyModalOpen(true)} className="btn-secondary px-3 py-1.5 rounded-xl flex items-center gap-2 text-sm font-bold bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/30 transition-colors md:hidden" title="Sincronizar NotebookLM">
+                        <Sparkles size={18} />
+                    </button>
+                    <button onClick={() => handleOpenModal()} className="btn-primary px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl flex items-center gap-2 text-sm sm:text-base font-bold whitespace-nowrap">
+                        <Plus size={18} /> <span className="hidden sm:inline">Crear Unidad</span>
+                        <span className="sm:hidden">Crear</span>
+                    </button>
+                </div>
             </div>
 
             {viewMode === 'timeline' ? (
@@ -204,6 +213,7 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
                                             const isExpanded = expandedUnitId === unit.id;
                                             const oaCodes = extractOACodes(unit.detalles);
                                             const linkedClasses = clases.filter(clase => {
+                                                if (!unit.fechaInicio || !unit.fechaTermino) return false;
                                                 const claseDate = new Date(clase.fecha);
                                                 const startDate = new Date(unit.fechaInicio + 'T00:00:00');
                                                 const endDate = new Date(unit.fechaTermino + 'T23:59:59');
@@ -222,7 +232,11 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
                                                                     {unit.numero ? `Unidad ${unit.numero}: ` : ''}{unit.nombre}
                                                                 </h4>
                                                                 <p className="text-sm text-slate-400 mt-1">
-                                                                    {new Date(unit.fechaInicio + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })} - {new Date(unit.fechaTermino + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                                    {unit.fechaInicio && unit.fechaTermino ? (
+                                                                        `${new Date(unit.fechaInicio + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })} - ${new Date(unit.fechaTermino + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })}`
+                                                                    ) : (
+                                                                        <span className="text-amber-400 font-medium">Sin fechas designadas</span>
+                                                                    )}
                                                                     <span className="ml-4 inline-block bg-slate-800/80 border border-slate-700 text-indigo-300 text-xs font-semibold px-2.5 py-0.5 rounded-full">{linkedClasses.length} clases</span>
                                                                 </p>
                                                             </div>
@@ -277,6 +291,7 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
                 </div>
             )}
             <UnitModal isOpen={unitModalOpen} onClose={handleCloseModal} userId={userId} unitToEdit={unitToEdit} selectedYear={selectedYear} selectedWeek={selectedWeek} schedules={schedules} units={units} />
+            <YearlyUnitGeneratorModal isOpen={yearlyModalOpen} onClose={() => setYearlyModalOpen(false)} userId={userId} selectedYear={selectedYear} schedules={schedules} units={units} />
         </main>
     );
 };

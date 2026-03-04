@@ -81,7 +81,7 @@ const UnitSelectionModal = ({ isOpen, onClose, units = [], onSelectUnit, selecte
                         <select
                             value={selectedCourse}
                             onChange={(e) => setSelectedCourse(e.target.value)}
-                            className="bg-slate-900/50 border border-slate-700 rounded-xl p-2.5 text-sm focus:border-indigo-500 outline-none text-slate-300"
+                            className="bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all text-white"
                         >
                             <option value="">Todos los Cursos</option>
                             {allCourses.map(c => <option key={c} value={c}>{c}</option>)}
@@ -91,7 +91,7 @@ const UnitSelectionModal = ({ isOpen, onClose, units = [], onSelectUnit, selecte
                         <select
                             value={selectedSubject}
                             onChange={(e) => setSelectedSubject(e.target.value)}
-                            className="bg-slate-900/50 border border-slate-700 rounded-xl p-2.5 text-sm focus:border-indigo-500 outline-none text-slate-300"
+                            className="bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all text-white"
                         >
                             <option value="">Todas las Asignaturas</option>
                             {allSubjects.map(s => <option key={s} value={s}>{s}</option>)}

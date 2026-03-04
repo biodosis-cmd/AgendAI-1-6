@@ -15,7 +15,7 @@ import { CURSO_COLORES, STATUS } from '@/constants';
  * @param {string} userId
  */
 export const calculateClassSchedule = (data, existingClasses, schedules, selectedYear, selectedWeek, userId) => {
-    const { curso, asignatura, clases: sesiones, unitLimitDate } = data; // unitLimitDate is optional
+    const { curso, asignatura, clases: sesiones, unitStartDate, unitLimitDate } = data; // unitStartDate y unitLimitDate son opcionales
     const conflicts = [];
     const classesToCreate = [];
 
@@ -77,6 +77,13 @@ export const calculateClassSchedule = (data, existingClasses, schedules, selecte
 
     // Check conflicts first
     let fechaCheck = getStartDateOfWeek(selectedYear, selectedWeek);
+    if (unitStartDate) {
+        const forceStart = new Date(unitStartDate + "T12:00:00");
+        forceStart.setHours(0, 0, 0, 0);
+        if (!isNaN(forceStart.getTime()) && forceStart > fechaCheck) {
+            fechaCheck = forceStart;
+        }
+    }
 
     let sesionesCheck = 0;
 
@@ -154,6 +161,13 @@ export const calculateClassSchedule = (data, existingClasses, schedules, selecte
 
     // 3. Generation Loop (Commit)
     let fechaActual = getStartDateOfWeek(selectedYear, selectedWeek);
+    if (unitStartDate) {
+        const forceStart2 = new Date(unitStartDate + "T12:00:00");
+        forceStart2.setHours(0, 0, 0, 0);
+        if (!isNaN(forceStart2.getTime()) && forceStart2 > fechaActual) {
+            fechaActual = forceStart2;
+        }
+    }
     let sesionesAgendadas = 0;
     daysSearched = 0;
 

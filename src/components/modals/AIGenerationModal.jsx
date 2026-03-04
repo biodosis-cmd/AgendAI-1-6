@@ -442,7 +442,7 @@ IMPORTANTE: Inicia cada sección indicando el tiempo, ej: "(15 min): ...".
 Requisitos de Calidad de la Respuesta:
 1. Lenguaje: Español, tono profesional y motivador.
 2. Formato de Salida: ÚNICAMENTE un array JSON válido (sin markdown).
-3. Estructura del JSON: Array de objetos con claves: "objetivo" (string), "inicio" (string), "desarrollo" (string), "aplicacion" (string), "cierre" (string).
+3. Estructura del JSON: Array de objetos con claves EXACTAS: "objetivo" (string), "inicio" (string), "desarrollo" (string), "aplicacion" (string), "cierre" (string). ¡Presta especial atención a escribir correctamente la palabra "desarrollo", NUNCA la escribas mal (como "desarosllo" o "dessarrollo")!
 
 IMPORTANTE: Revisa tu respuesta paso a paso. Asegúrate de que no haya comas al final de las listas (trailing commas) antes de responder.`;
 
@@ -496,12 +496,27 @@ IMPORTANTE: Revisa tu respuesta paso a paso. Asegúrate de que no haya comas al 
             const parsedClasses = JSON.parse(cleanJson);
             if (!Array.isArray(parsedClasses)) throw new Error("La respuesta no es un lista (array) de clases.");
 
+            // Sanitización y normalización de claves frente a errores ortográficos de la IA
+            parsedClasses.forEach(c => {
+                // 1. Desarrollo
+                if (!c.desarrollo) c.desarrollo = c.desarosllo || c.dessarrollo || c.Desarrollo || c.Desarollo || '';
+                // 2. Aplicacion
+                if (!c.aplicacion) c.aplicacion = c.Aplicacion || c.aplicación || c.Aplicación || c.aplicaciones || '';
+                // 3. Inicio
+                if (!c.inicio) c.inicio = c.Inicio || c.inicios || '';
+                // 4. Cierre
+                if (!c.cierre) c.cierre = c.Cierre || c.cierres || '';
+                // 5. Objetivo
+                if (!c.objetivo) c.objetivo = c.Objetivo || c.objetivos || c.Objetivos || '';
+            });
+
             onClassesGenerated({
                 curso: formData.curso,
                 asignatura: formData.asignatura,
                 clases: parsedClasses,
                 year: localYear,
                 week: localWeek,
+                unitStartDate: selectedUnit?.fechaInicio,
                 unitLimitDate: selectedUnit?.fechaTermino
             });
             onClose();
@@ -579,7 +594,7 @@ IMPORTANTE: Revisa tu respuesta paso a paso. Asegúrate de que no haya comas al 
                             {/* ... (Fields omitted, keep existing) */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <select
-                                    className={`w-full p-3 rounded-xl border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all ${isLockedMode ? 'bg-slate-800/50 text-slate-500 cursor-not-allowed' : 'bg-slate-900/50 text-slate-100'}`}
+                                    className={`w-full p-3 rounded-xl border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all ${isLockedMode ? 'bg-slate-800/50 text-slate-500 cursor-not-allowed' : 'bg-slate-800 text-white'}`}
                                     value={formData.curso}
                                     onChange={(e) => setFormData({ ...formData, curso: e.target.value })}
                                     disabled={isLockedMode}
@@ -589,7 +604,7 @@ IMPORTANTE: Revisa tu respuesta paso a paso. Asegúrate de que no haya comas al 
                                 </select>
 
                                 <select
-                                    className={`w-full p-3 rounded-xl border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all ${isLockedMode ? 'bg-slate-800/50 text-slate-500 cursor-not-allowed' : 'bg-slate-900/50 text-slate-100'}`}
+                                    className={`w-full p-3 rounded-xl border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all ${isLockedMode ? 'bg-slate-800/50 text-slate-500 cursor-not-allowed' : 'bg-slate-800 text-white'}`}
                                     value={formData.asignatura}
                                     onChange={(e) => setFormData({ ...formData, asignatura: e.target.value })}
                                     disabled={!formData.curso || isLockedMode}
