@@ -14,7 +14,7 @@ const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }
         },
         {
             title: "Carga tu Horario",
-            desc: "Pide por correo o WhatsApp a tu administración que nos envíe tu horario para cargarlo en el sistema.",
+            desc: "Envíanos tu horario semanal de clases para cargarlo en el sistema.",
             icon: <Clock size={28} className="text-amber-400" />,
             color: "amber",
             btnText: "Horarios",
@@ -22,7 +22,7 @@ const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }
         },
         {
             title: "Extensión de Unidades",
-            desc: "Crea la estructura del año. Sube un PDF del Mineduc y deja que la IA asigne el tiempo a cada unidad.",
+            desc: "Crea tus unidades manualmente o programa tu año completo.",
             icon: <BookOpen size={28} className="text-emerald-400" />,
             color: "emerald",
             btnText: "Gestor de Unidades",
@@ -30,7 +30,7 @@ const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }
         },
         {
             title: "Planificación de Clases",
-            desc: "Una vez tengamos unidades u horario, crea tus clases detalladas (Inicio, Desarrollo, Cierre) con 1 clic.",
+            desc: "Crea y agenda automáticamente tus clases libremente o bien, crea todas las clases de tus unidades.",
             icon: <Sparkles size={28} className="text-violet-400" />,
             color: "violet",
             btnText: "Generador Mágico",
@@ -61,15 +61,15 @@ const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }
             <div className="w-full max-w-5xl relative">
 
                 {/* Línea conectora Desktop */}
-                <div className="hidden lg:block absolute top-28 left-[10%] right-[10%] h-0.5 bg-gradient-to-r from-blue-500/20 via-emerald-500/20 to-violet-500/20 z-0"></div>
+                <div className="hidden lg:block absolute top-28 left-[10%] right-[10%] h-0.5 bg-gradient-to-r from-blue-500/20 via-emerald-500/20 to-violet-500/20 -z-10"></div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 z-10 relative">
                     {tutorialSteps.map((step, idx) => {
                         const bgColors = {
-                            blue: 'bg-blue-500/10 hover:border-blue-500/50',
-                            amber: 'bg-amber-500/10 hover:border-amber-500/50',
-                            emerald: 'bg-emerald-500/10 hover:border-emerald-500/50',
-                            violet: 'bg-violet-500/10 hover:border-violet-500/50',
+                            blue: 'hover:border-blue-500/50',
+                            amber: 'hover:border-amber-500/50',
+                            emerald: 'hover:border-emerald-500/50',
+                            violet: 'hover:border-violet-500/50',
                         };
                         const iconBgColors = {
                             blue: 'bg-blue-500/20 border-blue-500/30',
@@ -99,8 +99,8 @@ const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }
                                     <button
                                         onClick={step.action}
                                         className={`w-full py-3 rounded-xl font-bold text-sm flex justify-center items-center gap-2 transition-all group-hover:shadow-lg ${step.color === 'blue' ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20' :
-                                                step.color === 'emerald' ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20' :
-                                                    'bg-violet-600 hover:bg-violet-500 text-white shadow-violet-900/20'
+                                            step.color === 'emerald' ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20' :
+                                                'bg-violet-600 hover:bg-violet-500 text-white shadow-violet-900/20'
                                             }`}
                                     >
                                         {step.btnText} <ArrowRight size={16} />
