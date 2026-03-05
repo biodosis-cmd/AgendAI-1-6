@@ -27,6 +27,7 @@ const Sidebar = ({
         { id: 'calendar', icon: CalendarDays, label: 'Calendario' },
         { id: 'units', icon: BookOpen, label: 'Unidades' },
         { id: 'schedules', icon: Clock, label: 'Horarios' },
+        { id: 'config', icon: Settings, label: 'Configuración', isAction: true, onClick: () => { onOpenConfig(); if (setIsMobileOpen) setIsMobileOpen(false); } },
         { id: 'report', icon: FileText, label: 'Reportes' },
         { id: 'dashboard', icon: PieChart, label: 'Cobertura' },
     ];
@@ -84,7 +85,7 @@ const Sidebar = ({
                     return (
                         <button
                             key={item.id}
-                            onClick={() => handleNavigation(item.id)}
+                            onClick={() => item.isAction ? item.onClick() : handleNavigation(item.id)}
                             className={`
                                 w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative
                                 ${isActive
@@ -135,19 +136,6 @@ const Sidebar = ({
                 >
                     <Sparkles size={20} className="shrink-0 text-emerald-500/80 group-hover:text-emerald-400" />
                     {(!isCollapsed || isMobileOpen) && <span className="font-medium text-sm">PlanificAI unidad</span>}
-                </button>
-
-                <button
-                    onClick={() => { onOpenConfig(); if (setIsMobileOpen) setIsMobileOpen(false); }}
-                    className={`
-                        w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group
-                        text-slate-400 hover:bg-slate-800/50 hover:text-slate-200
-                        ${isCollapsed ? 'md:justify-center' : ''}
-                    `}
-                    title="Configuración"
-                >
-                    <Settings size={20} className="shrink-0 text-slate-500 group-hover:text-slate-300" />
-                    {(!isCollapsed || isMobileOpen) && <span className="font-medium text-sm">Configuración</span>}
                 </button>
 
                 <div className="my-4 border-t border-slate-800/50 mx-2"></div>
