@@ -8,17 +8,36 @@ const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }
             title: "Configura tu Año",
             desc: "Define cuándo empieza, termina y cuáles son las vacaciones de tu año escolar.",
             icon: <Settings size={28} className="text-blue-400" />,
-            color: "blue",
-            btnText: "Ir a Configuración",
-            action: onNavigateConfig
+            color: "blue"
         },
         {
             title: "Carga tu Horario",
             desc: "Envíanos tu horario semanal de clases para cargarlo en el sistema.",
             icon: <Clock size={28} className="text-amber-400" />,
-            color: "amber",
-            btnText: "Horarios",
-            action: null // Informativo o enviar a vista horarios si existe
+            color: "amber"
+        }
+    ];
+
+    const landingFeatures = [
+        {
+            title: "Centro de Comando de Unidades",
+            desc: "Sube documentos del Mineduc y la IA extraerá los OA e indicadores, distribuyéndolos lógicamente a lo largo de tu año escolar.",
+            icon: <BookOpen className="text-emerald-400" size={24} />
+        },
+        {
+            title: "Generador Mágico de Clases",
+            desc: "Redacta al instante la estructura detallada de tu sesión (Inicio, Desarrollo y Cierre) con un solo clic, sin hoja en blanco.",
+            icon: <Sparkles className="text-amber-400" size={24} />
+        },
+        {
+            title: "Adaptador DUA Inclusivo",
+            desc: "Selecciona y detalla las Necesidades Educativas Especiales (NEE) de tu curso para obtener estrategias y adecuaciones personalizadas.",
+            icon: <Calendar className="text-blue-400" size={24} />
+        },
+        {
+            title: "Sistema de Evaluación Integrado",
+            desc: "Formula instrumentos de evaluación (rúbricas e indicadores) coherentes con tus Objetivos de Aprendizaje de forma automática.",
+            icon: <Plus className="text-rose-400" size={24} />
         }
     ];
 
@@ -71,24 +90,9 @@ const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }
                                 </div>
 
                                 <h3 className="text-xl font-bold text-white mb-3">{step.title}</h3>
-                                <p className="text-slate-400 text-sm leading-relaxed mb-8 flex-grow">
+                                <p className="text-slate-400 text-sm leading-relaxed mb-4 flex-grow">
                                     {step.desc}
                                 </p>
-
-                                {step.action ? (
-                                    <button
-                                        onClick={step.action}
-                                        className={`w-full py-3 rounded-xl font-bold text-sm flex justify-center items-center gap-2 transition-all group-hover:shadow-lg ${step.color === 'blue' ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20' :
-                                                'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-900/20'
-                                            }`}
-                                    >
-                                        {step.btnText} <ArrowRight size={16} />
-                                    </button>
-                                ) : (
-                                    <div className="w-full py-3 rounded-xl font-bold text-sm flex justify-center items-center gap-2 bg-slate-800/50 text-slate-500 border border-slate-800 cursor-not-allowed">
-                                        Pendientes
-                                    </div>
-                                )}
                             </div>
                         );
                     })}
@@ -154,6 +158,43 @@ const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }
                         </div>
                     </button>
 
+                </div>
+            </div>
+
+            {/* Landing Page Features Section */}
+            <div className="w-full max-w-5xl border-t border-slate-800/50 pt-16 mt-16 mb-8 relative">
+
+                {/* Background glow for landing section */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-500/5 blur-[120px] rounded-full pointer-events-none -z-10"></div>
+
+                <div className="text-center mb-12">
+                    <h2 className="text-3xl font-bold text-white mb-4">¿Por qué usar AgendAI?</h2>
+                    <p className="text-slate-400 max-w-2xl mx-auto text-lg">
+                        Diseñado desde cero para devolverle el tiempo a los profesores. Automatiza la burocracia y enfoca tu energía en enseñar.
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+                    {landingFeatures.map((feature, idx) => (
+                        <div key={idx} className="bg-[#0f1221] border border-slate-800/80 rounded-2xl p-6 flex gap-5 hover:border-slate-700 transition-colors">
+                            <div className="w-12 h-12 rounded-xl bg-slate-800/50 flex items-center justify-center shrink-0 border border-slate-700/50">
+                                {feature.icon}
+                            </div>
+                            <div>
+                                <h4 className="text-lg font-bold text-slate-200 mb-2">{feature.title}</h4>
+                                <p className="text-slate-500 text-sm leading-relaxed">
+                                    {feature.desc}
+                                </p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="mt-12 text-center">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700/50 text-slate-400 text-sm">
+                        <Calendar size={14} className="text-indigo-400" />
+                        <span>Calendario dinámico con soporte para feriados</span>
+                    </div>
                 </div>
             </div>
 
