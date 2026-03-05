@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, BookOpen, Sparkles, ArrowRight, Settings, Plus } from 'lucide-react';
+import { Calendar, Clock, BookOpen, Sparkles, ArrowRight, Settings, Plus, FileText } from 'lucide-react';
 
 const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }) => {
 
@@ -38,6 +38,11 @@ const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }
             title: "Sistema de Evaluación Integrado",
             desc: "Formula instrumentos de evaluación (rúbricas e indicadores) coherentes con tus Objetivos de Aprendizaje de forma automática.",
             icon: <Plus className="text-rose-400" size={24} />
+        },
+        {
+            title: "Reportes Profesionales Instantáneos",
+            desc: "Descarga documentos con formato formal y reportes de cobertura curricular listos para presentar, imprimir o archivar.",
+            icon: <FileText className="text-fuchsia-400" size={24} />
         }
     ];
 
