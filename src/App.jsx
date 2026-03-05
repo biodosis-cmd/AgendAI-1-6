@@ -11,6 +11,7 @@ import HomeView from '@/components/views/HomeView';
 import ReportView from '@/components/views/ReportView';
 import UnitsView from '@/components/views/UnitsView';
 import SchedulesView from '@/components/views/SchedulesView';
+import DashboardView from '@/components/views/DashboardView';
 import LoginView from '@/components/views/LoginView';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ScheduleEditorModal from '@/components/modals/ScheduleEditorModal';
@@ -148,6 +149,7 @@ const AppContent = () => {
                 {view === 'report' && <ReportView userId={userId} clases={clases} units={units} onBack={() => actions.setView('calendar')} selectedYear={selectedYear} onEditClase={handleEditClase} onDelete={handleDelete} onDeleteMultiple={handleDeleteMultiple} />}
                 {view === 'units' && <UnitsView units={units.filter(u => !u.fechaInicio || new Date(u.fechaInicio).getFullYear() === selectedYear)} clases={filteredClasses} userId={userId} onBack={() => actions.setView('calendar')} onEditClase={handleEditClase} onDelete={handleDeleteUnit} selectedYear={selectedYear} selectedWeek={selectedWeek} schedules={schedules} />}
                 {view === 'schedules' && <SchedulesView userId={userId} schedules={schedules} onBack={() => actions.setView('calendar')} onEdit={handleEditSchedule} />}
+                {view === 'dashboard' && <DashboardView clases={filteredClasses} units={units} selectedYear={selectedYear} userId={userId} />}
                 {view === 'config' && <ConfigView userId={userId} selectedYear={selectedYear} />}
             </MainLayout>
 

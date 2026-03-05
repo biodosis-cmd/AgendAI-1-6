@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
     Home, BookOpen, CalendarDays, Clock, FileText,
     Settings, Sparkles, ChevronLeft, ChevronRight,
-    LogOut, Database, UploadCloud, DownloadCloud
+    LogOut, Database, UploadCloud, DownloadCloud, PieChart
 } from 'lucide-react';
 
 const Sidebar = ({
@@ -28,6 +28,7 @@ const Sidebar = ({
         { id: 'units', icon: BookOpen, label: 'Unidades' },
         { id: 'schedules', icon: Clock, label: 'Horarios' },
         { id: 'report', icon: FileText, label: 'Reportes' },
+        { id: 'dashboard', icon: PieChart, label: 'Cobertura' },
     ];
 
     const handleNavigation = (id) => {
