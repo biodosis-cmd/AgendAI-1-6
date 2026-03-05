@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, AlertTriangle, Calendar } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Save, Plus, Trash2, AlertTriangle, Calendar, Upload } from 'lucide-react';
 import { getSchoolYearConfig, saveSchoolYearConfig } from '@/services/db';
+import { parseCalendarExcel } from '@/utils/excelImport';
 import { useUI } from '@/context/UIContext';
 
 const ConfigView = ({ userId, selectedYear }) => {
@@ -12,6 +13,8 @@ const ConfigView = ({ userId, selectedYear }) => {
         schoolYearEnd: `${selectedYear}-12-15`,
         excludedDates: []
     });
+
+    const fileInputRef = useRef(null);
 
     // Load existing config on mount
     useEffect(() => {
@@ -51,6 +54,40 @@ const ConfigView = ({ userId, selectedYear }) => {
         }
     };
 
+    const handleFileUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsLoading(true);
+        try {
+            const buffer = await file.arrayBuffer();
+            const result = await parseCalendarExcel(buffer);
+
+            if (result.success && result.data) {
+                setConfig(prev => ({
+                    ...prev,
+                    schoolYearStart: result.data.schoolYearStart || prev.schoolYearStart,
+                    schoolYearEnd: result.data.schoolYearEnd || prev.schoolYearEnd,
+                    excludedDates: [
+                        ...prev.excludedDates,
+                        ...(result.data.excludedDates || [])
+                    ]
+                }));
+                // Auto-save logic optionally here, or leave to user manual save:
+                // Let's leave it to user manual save so they can review.
+                alert(`¡Calendario importado! Se detectaron ${result.data.excludedDates?.length || 0} feriados nuevos. Revisa los datos y presiona "Guardar Cambios".`);
+            } else {
+                alert("Error al procesar el Excel: " + (result.error || "Formato inválido."));
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Ocurrió un error leyendo el archivo Excel.");
+        } finally {
+            setIsLoading(false);
+            if (fileInputRef.current) fileInputRef.current.value = ''; // Reset input
+        }
+    };
+
     const addExclusion = () => {
         setConfig(prev => ({
             ...prev,
@@ -85,13 +122,31 @@ const ConfigView = ({ userId, selectedYear }) => {
                     </h1>
                     <p className="text-slate-400 text-sm mt-1">Define las fechas claves y feriados para la generación automática de clases.</p>
                 </div>
-                <button
-                    onClick={handleSave}
-                    disabled={isLoading}
-                    className="btn-primary px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all"
-                >
-                    <Save size={18} /> Guardar Cambios
-                </button>
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isLoading}
+                        className="bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white border border-emerald-500/20 px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-2 transition-all"
+                        title="Importar plantilla de fechas desde Excel"
+                    >
+                        <Upload size={18} /> Importar Excel
+                    </button>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                        accept=".xlsx,.xls,.cvs"
+                        className="hidden"
+                    />
+
+                    <button
+                        onClick={handleSave}
+                        disabled={isLoading}
+                        className="btn-primary px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all"
+                    >
+                        <Save size={18} /> Guardar Cambios
+                    </button>
+                </div>
             </div>
 
             {isLoading ? (

@@ -143,3 +143,136 @@ export const parseScheduleExcel = (fileBuffer) => {
         }
     });
 };
+
+/**
+ * Parses Dates from Excel properly (handles serial numbers, standard strings, and native JS Dates).
+ * Excel serial dates are days since 1899-12-30.
+ */
+const parseExcelDate = (value) => {
+    if (!value) return null;
+
+    // If XLSX parsed it as a native JS Date
+    if (value instanceof Date) {
+        const y = value.getFullYear();
+        const m = String(value.getMonth() + 1).padStart(2, '0');
+        const d = String(value.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    // If it's an Excel serial date number
+    if (typeof value === 'number') {
+        const date = new Date((value - 25569) * 86400 * 1000);
+        // Fix timezone offset issues so we get the exact date
+        const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+        const adjustedDate = new Date(date.getTime() + userTimezoneOffset);
+
+        return adjustedDate.toISOString().split('T')[0]; // Return YYYY-MM-DD
+    }
+
+    // If it's a string like "05-03-2026" or "05/03/2026"
+    if (typeof value === 'string') {
+        // If it comes already as YYYY-MM-DD
+        if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            return value;
+        }
+
+        const parts = value.split(/[-/]/);
+        if (parts.length === 3) {
+            // Assume DD-MM-YYYY
+            const day = parts[0].padStart(2, '0');
+            const month = parts[1].padStart(2, '0');
+            const year = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+            return `${year}-${month}-${day}`;
+        }
+    }
+    return null;
+};
+
+/**
+ * Parses the School Calendar Excel file.
+ * Expected Structure:
+ * B1: Inicio Año Escolar (Fecha)
+ * B2: Termino Año Escolar (Fecha)
+ * Row 4: Headers for Holidays (A: Descripcion, B: Desde, C: Hasta)
+ * Row 5+: Holidays Data
+ * 
+ * @param {ArrayBuffer} fileBuffer 
+ * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
+ */
+export const parseCalendarExcel = (fileBuffer) => {
+    return new Promise((resolve, reject) => {
+        try {
+            const workbook = XLSX.read(fileBuffer, { type: 'array', cellDates: true, dateNF: 'yyyy-mm-dd' });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+
+            // 1. Get School Year Limits from B1 and B2
+            const cellB1 = sheet['B1']; // Start date
+            const cellB2 = sheet['B2']; // End date
+
+            let schoolYearStart = null;
+            let schoolYearEnd = null;
+
+            if (cellB1 && cellB1.v) schoolYearStart = parseExcelDate(cellB1.v);
+            if (cellB2 && cellB2.v) schoolYearEnd = parseExcelDate(cellB2.v);
+
+            // 2. Get Holidays Data
+            // We read the entire sheet as array of arrays without skipping ranges,
+            // to be extremely bulletproof regarding empty rows.
+            const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+            const excludedDates = [];
+
+            for (let i = 0; i < jsonData.length; i++) {
+                const row = jsonData[i];
+
+                // If row doesn't have at least two fields, or if we are at the top metadata rows, skip.
+                // We identify the 'Inicio Año Escolar' and 'Termino Año Escolar' strings to skip them explicitly,
+                // and also skip empty rows.
+                if (!row || row.length < 2 || !row[0] || !row[1]) continue;
+
+                const title = String(row[0]).trim();
+                const lowerTitle = title.toLowerCase();
+
+                // Skip header or metadata rows that might exist in column A
+                if (
+                    lowerTitle === 'descripción' ||
+                    lowerTitle === 'descripcion' ||
+                    lowerTitle.includes('año escolar') ||
+                    lowerTitle === ''
+                ) {
+                    continue;
+                }
+
+                const startRaw = row[1];
+                const endRaw = row[2] || startRaw; // If no end date, use start date again
+
+                const start = parseExcelDate(startRaw);
+                const end = parseExcelDate(endRaw);
+
+                // Only add if we got a valid parsed date
+                if (start && end) {
+                    excludedDates.push({
+                        id: Date.now() + i, // Unique ID
+                        title,
+                        start,
+                        end
+                    });
+                }
+            }
+
+            resolve({
+                success: true,
+                data: {
+                    schoolYearStart,
+                    schoolYearEnd,
+                    excludedDates
+                }
+            });
+
+        } catch (error) {
+            console.error("Error parsing Calendar Excel:", error);
+            resolve({ success: false, error: error.message });
+        }
+    });
+};
