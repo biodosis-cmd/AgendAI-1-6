@@ -5,6 +5,7 @@ import { X, ClipboardPaste, Sparkles, ArrowRight, Brain, Check, ShieldAlert, Hea
 const DuaGeneratorModal = ({ isOpen, onClose, claseData, onDuaSaved }) => {
     const [step, setStep] = useState(1);
     const [selectedNees, setSelectedNees] = useState(['TEA', 'TDAH']);
+    const [neeDetails, setNeeDetails] = useState({}); // Nuevo estado para detalles específicos
     const [jsonInput, setJsonInput] = useState('');
     const [duaData, setDuaData] = useState(null);
     const [isCopiedPrompt, setIsCopiedPrompt] = useState(false);
@@ -18,19 +19,25 @@ const DuaGeneratorModal = ({ isOpen, onClose, claseData, onDuaSaved }) => {
             setDuaData(null);
             setError('');
             setIsCopiedPrompt(false);
+            setNeeDetails({}); // Limpiar detalles al abrir
         }
     }, [isOpen, claseData]);
 
     const opcionesNee = [
-        { id: 'TEA', nombre: 'Espectro Autista (TEA)', icon: '🧩', desc: 'Anticipación, reducción de estímulos, apoyo visual.' },
-        { id: 'TDAH', nombre: 'Déficit Atencional (TDAH)', icon: '⚡', desc: 'Instrucciones cortas, pausas activas, canalización motriz.' },
-        { id: 'SENSORIAL', nombre: 'Desafíos Sensoriales', icon: '👁️', desc: 'Adaptaciones visuales, auditivas o de material físico.' },
-        { id: 'COGNITIVO', nombre: 'Desafío Cognitivo / Lenguaje', icon: '🧠', desc: 'Discapacidad intelectual leve, instrucciones simplificadas.' },
-        { id: 'MOTRIZ', nombre: 'Discapacidad Motora', icon: '🦽', desc: 'Adaptación de espacios, tiempos y material manipulable.' }
+        { id: 'TEA', nombre: 'Espectro Autista (TEA)', icon: '🧩', desc: 'Anticipación, reducción de estímulos, apoyo visual.', placeholder: 'Ej: Hipersensibilidad auditiva, nivel 1 de apoyo...' },
+        { id: 'TDAH', nombre: 'Déficit Atencional (TDAH)', icon: '⚡', desc: 'Instrucciones cortas, pausas activas, canalización motriz.', placeholder: 'Ej: Predominio hiperactivo, requiere moverse frecuentemente...' },
+        { id: 'SENSORIAL', nombre: 'Desafíos Sensoriales', icon: '👁️', desc: 'Adaptaciones visuales, auditivas o de material físico.', placeholder: 'Ej: Visión reducida, usa macrotipo y necesita sentarse adelante...' },
+        { id: 'COGNITIVO', nombre: 'Desafío Cognitivo / Lenguaje', icon: '🧠', desc: 'Discapacidad intelectual leve, instrucciones simplificadas.', placeholder: 'Ej: Disfasia mixta, le cuesta comprender instrucciones largas...' },
+        { id: 'MOTRIZ', nombre: 'Discapacidad Motora', icon: '🦽', desc: 'Adaptación de espacios, tiempos y material manipulable.', placeholder: 'Ej: Displasia de cadera severa, puede caminar pero con dificultad...' }
     ];
 
     const generatePrompt = () => {
-        const neesRequeridas = selectedNees.map(id => opcionesNee.find(n => n.id === id)?.nombre).join(', ');
+        // Formatear los perfiles incluyendo sus detalles si existen
+        const neesRequeridas = selectedNees.map(id => {
+            const nombre = opcionesNee.find(n => n.id === id)?.nombre;
+            const detalle = neeDetails[id] ? ` (Detalle específico del estudiante: "${neeDetails[id]}")` : '';
+            return `${nombre}${detalle}`;
+        }).join(', ');
 
         const formatoJSON = `[
   {
@@ -93,9 +100,17 @@ ${formatoJSON}
     const toggleNee = (id) => {
         if (selectedNees.includes(id)) {
             setSelectedNees(selectedNees.filter(n => n !== id));
+            // Opcional: limpiar el detalle si lo deselecciona
+            const newDetails = { ...neeDetails };
+            delete newDetails[id];
+            setNeeDetails(newDetails);
         } else {
             setSelectedNees([...selectedNees, id]);
         }
+    };
+
+    const handleDetailChange = (id, text) => {
+        setNeeDetails({ ...neeDetails, [id]: text });
     };
 
     const handleSaveDua = async () => {
@@ -175,10 +190,9 @@ ${formatoJSON}
                                     {opcionesNee.map(nee => (
                                         <div
                                             key={nee.id}
-                                            onClick={() => toggleNee(nee.id)}
-                                            className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedNees.includes(nee.id) ? 'bg-fuchsia-500/10 border-fuchsia-500 shadow-lg shadow-fuchsia-500/10' : 'bg-slate-800/30 border-slate-700 hover:border-slate-500 hover:bg-slate-800'}`}
+                                            className={`p-4 rounded-xl border transition-all ${selectedNees.includes(nee.id) ? 'bg-fuchsia-500/10 border-fuchsia-500 shadow-lg shadow-fuchsia-500/10' : 'bg-slate-800/30 border-slate-700 hover:border-slate-500 hover:bg-slate-800'}`}
                                         >
-                                            <div className="flex justify-between items-start mb-2">
+                                            <div onClick={() => toggleNee(nee.id)} className="flex justify-between items-start mb-2 cursor-pointer">
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-xl">{nee.icon}</span>
                                                     <span className={`font-bold text-sm ${selectedNees.includes(nee.id) ? 'text-fuchsia-300' : 'text-slate-300'}`}>{nee.nombre}</span>
@@ -187,7 +201,21 @@ ${formatoJSON}
                                                     {selectedNees.includes(nee.id) && <Check size={14} strokeWidth={3} />}
                                                 </div>
                                             </div>
-                                            <p className="text-xs text-slate-400 pl-8">{nee.desc}</p>
+                                            <p className="text-xs text-slate-400 pl-8 mb-3">{nee.desc}</p>
+
+                                            {/* Textarea for specific details when selected */}
+                                            {selectedNees.includes(nee.id) && (
+                                                <div className="pl-8 animate-in slide-in-from-top-2 fade-in duration-200">
+                                                    <textarea
+                                                        value={neeDetails[nee.id] || ''}
+                                                        onChange={(e) => handleDetailChange(nee.id, e.target.value)}
+                                                        placeholder={`Opcional: Especifica detalles. ${nee.placeholder}`}
+                                                        rows={2}
+                                                        className="w-full bg-slate-900 border border-fuchsia-500/30 rounded-lg p-2.5 text-xs text-slate-300 placeholder-slate-500 focus:border-fuchsia-500 outline-none resize-none custom-scrollbar"
+                                                        onClick={(e) => e.stopPropagation()} // Prevent toggling the NEE when typing
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
