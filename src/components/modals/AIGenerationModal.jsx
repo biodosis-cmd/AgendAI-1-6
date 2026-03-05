@@ -41,6 +41,7 @@ const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, 
     const [error, setError] = useState('');
     const [isCopied, setIsCopied] = useState(false);
     const [schoolYearConfig, setSchoolYearConfig] = useState(null);
+    const [customStartDate, setCustomStartDate] = useState(''); // NEW: Specific start date override
 
     // Local Date State for Week Selection
     const [localYear, setLocalYear] = useState(selectedYear);
@@ -142,6 +143,7 @@ const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, 
         newDate.setDate(newDate.getDate() + (direction * 7));
         setLocalYear(newDate.getFullYear());
         setLocalWeek(getWeekNumber(newDate));
+        setCustomStartDate(''); // Reset exact start date when changing week
     };
 
     const getWeekRangeString = () => {
@@ -260,6 +262,50 @@ const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, 
         return Object.keys(activeSchedule.scheduleData[formData.curso] || {}).sort();
     }, [formData.curso, activeSchedule]);
 
+    // Calculate available specific days for the selected course/subject in the current week
+    const availableStartDays = React.useMemo(() => {
+        if (!formData.curso || !formData.asignatura || isLockedMode || !activeSchedule || !activeSchedule.scheduleData) return [];
+        
+        const blocks = activeSchedule.scheduleData[formData.curso]?.[formData.asignatura] || [];
+        if (blocks.length === 0) return [];
+
+        const weekStart = getStartDateOfWeek(localYear, localWeek);
+        const days = [];
+        const seenDays = new Set(); // Prevent duplicates if multiple blocks on same day
+        
+        for (let i = 0; i < 7; i++) {
+            const checkDate = new Date(weekStart);
+            checkDate.setDate(checkDate.getDate() + i);
+            const dayOfWeek = checkDate.getDay(); // 0 = Sun, 1 = Mon...
+            
+            // Check if there is a block on this day in the schedule
+            const hasClass = blocks.some(b => {
+                 let bDay = b.day || b.dia; 
+                 if (typeof bDay === 'string') {
+                     const map = { 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Miercoles': 3, 'Jueves': 4, 'Viernes': 5, 'Sábado': 6, 'Domingo': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 0 };
+                     if (map[bDay] !== undefined) bDay = map[bDay];
+                 }
+                 return bDay === dayOfWeek;
+            });
+
+            if (hasClass) {
+                // Formatting for dropdown
+                const dateStr = checkDate.toISOString().split('T')[0];
+                const dayName = checkDate.toLocaleDateString('es-CL', { weekday: 'long' });
+                const dayNum = checkDate.getDate();
+                const monthName = checkDate.toLocaleDateString('es-CL', { month: 'short' });
+                
+                const label = `${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} de ${monthName}`;
+                
+                if (!seenDays.has(dateStr)) {
+                    seenDays.add(dateStr);
+                    days.push({ value: dateStr, label });
+                }
+            }
+        }
+        return days;
+    }, [formData.curso, formData.asignatura, localYear, localWeek, activeSchedule, isLockedMode]);
+
     // Exact Quantity Logic (Counting real days in schedule - MIRRORED FROM UNITMODAL)
     useEffect(() => {
         if (selectedUnit && activeSchedule && formData.curso && formData.asignatura) {
@@ -317,8 +363,13 @@ const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, 
     useEffect(() => {
         if (formData.curso) {
             setFormData(prev => ({ ...prev, asignatura: asignaturasDisponibles[0] || '' }));
+            setCustomStartDate('');
         }
-    }, [formData.curso]);
+    }, [formData.curso, asignaturasDisponibles]);
+
+    useEffect(() => {
+        setCustomStartDate('');
+    }, [formData.asignatura]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -517,7 +568,8 @@ IMPORTANTE: Revisa tu respuesta paso a paso. Asegúrate de que no haya comas al 
                 year: localYear,
                 week: localWeek,
                 unitStartDate: selectedUnit?.fechaInicio,
-                unitLimitDate: selectedUnit?.fechaTermino
+                unitLimitDate: selectedUnit?.fechaTermino,
+                customStartDate: isLockedMode ? null : customStartDate // Only pass override in free mode
             });
             onClose();
             setStep(1);
@@ -628,6 +680,25 @@ IMPORTANTE: Revisa tu respuesta paso a paso. Asegúrate de que no haya comas al 
                                     <span className="absolute right-3 top-3 text-xs text-slate-500 font-bold tracking-wider">CLASES</span>
                                 </div>
                             </div>
+
+                            {!isLockedMode && formData.curso && formData.asignatura && availableStartDays.length > 0 && (
+                                <div className="animate-in fade-in slide-in-from-top-2">
+                                    <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Comenzar clases desde:</label>
+                                    <select
+                                        className="w-full p-3 rounded-xl border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all bg-slate-800 text-white"
+                                        value={customStartDate}
+                                        onChange={(e) => setCustomStartDate(e.target.value)}
+                                    >
+                                        <option value="">Automático (Toda la semana)</option>
+                                        {availableStartDays.map(day => (
+                                            <option key={day.value} value={day.value}>{day.label}</option>
+                                        ))}
+                                    </select>
+                                    <p className="text-xs text-slate-500 mt-2 ml-1">
+                                        Por defecto, se asignan según el orden semanal de tu horario. Si eliges un día exacto, las clases comenzarán a asignarse desde esa fecha en adelante.
+                                    </p>
+                                </div>
+                            )}
 
                             {/* SMART UNIT SELECTOR */}
                             {isLockedMode && (

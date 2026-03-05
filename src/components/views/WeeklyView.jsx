@@ -114,14 +114,14 @@ const WeeklyView = ({ selectedWeek, selectedYear, clases, onWeekChange, onEdit, 
                     <div className="flex justify-center gap-4 px-4">
                         <button
                             onClick={onOpenAiModal}
-                            className="h-10 w-10 flex items-center justify-center rounded-xl bg-indigo-600 text-white shadow-lg active:scale-95 transition-all"
+                            className="h-10 w-10 flex items-center justify-center rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-amber-400 shadow-lg active:scale-95 transition-all"
                             title="Planificar con IA"
                         >
                             <Sparkles size={20} />
                         </button>
                         <button
                             onClick={onOpenUnitPlanner}
-                            className="h-10 w-10 flex items-center justify-center rounded-xl bg-[#0f1221] border border-slate-800 text-slate-300 active:scale-95 transition-all"
+                            className="h-10 w-10 flex items-center justify-center rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 shadow-lg active:scale-95 transition-all"
                             title="Unidades"
                         >
                             <BookOpen size={20} />
@@ -140,14 +140,14 @@ const WeeklyView = ({ selectedWeek, selectedYear, clases, onWeekChange, onEdit, 
                     {/* Desktop Planning Actions (Icon Only) */}
                     <button
                         onClick={onOpenAiModal}
-                        className="h-8 w-8 flex items-center justify-center rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 transition-all hover:scale-105 active:scale-95 border border-indigo-400/20 mr-1"
+                        className="h-8 w-8 flex items-center justify-center rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 text-amber-400 shadow-lg shadow-indigo-500/10 transition-all hover:scale-105 active:scale-95 border border-indigo-500/30 mr-1"
                         title="Planificación Rápida (IA)"
                     >
                         <Sparkles size={16} />
                     </button>
                     <button
                         onClick={onOpenUnitPlanner}
-                        className="h-8 w-8 flex items-center justify-center rounded-full bg-[#0f1221] hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 hover:border-slate-500 transition-all mr-3"
+                        className="h-8 w-8 flex items-center justify-center rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition-all hover:scale-105 active:scale-95 mr-3"
                         title="Gestionar Unidades"
                     >
                         <BookOpen size={16} />

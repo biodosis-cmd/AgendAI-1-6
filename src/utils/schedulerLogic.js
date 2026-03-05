@@ -15,7 +15,7 @@ import { CURSO_COLORES, STATUS } from '@/constants';
  * @param {string} userId
  */
 export const calculateClassSchedule = (data, existingClasses, schedules, selectedYear, selectedWeek, userId) => {
-    const { curso, asignatura, clases: sesiones, unitStartDate, unitLimitDate } = data; // unitStartDate y unitLimitDate son opcionales
+    const { curso, asignatura, clases: sesiones, unitStartDate, unitLimitDate, customStartDate } = data; // customStartDate is new
     const conflicts = [];
     const classesToCreate = [];
 
@@ -77,7 +77,17 @@ export const calculateClassSchedule = (data, existingClasses, schedules, selecte
 
     // Check conflicts first
     let fechaCheck = getStartDateOfWeek(selectedYear, selectedWeek);
-    if (unitStartDate) {
+
+    // 1. Priority to customStartDate (Free AI Generation specific start day)
+    if (customStartDate) {
+        const exactStart = new Date(customStartDate + "T12:00:00");
+        exactStart.setHours(0, 0, 0, 0);
+        if (!isNaN(exactStart.getTime())) {
+            fechaCheck = exactStart;
+        }
+    }
+    // 2. Fallback Priority to unitStartDate (Unit Planification)
+    else if (unitStartDate) {
         const forceStart = new Date(unitStartDate + "T12:00:00");
         forceStart.setHours(0, 0, 0, 0);
         if (!isNaN(forceStart.getTime()) && forceStart > fechaCheck) {
@@ -161,13 +171,24 @@ export const calculateClassSchedule = (data, existingClasses, schedules, selecte
 
     // 3. Generation Loop (Commit)
     let fechaActual = getStartDateOfWeek(selectedYear, selectedWeek);
-    if (unitStartDate) {
+
+    // 1. Priority to customStartDate (Free AI Generation specific start day)
+    if (customStartDate) {
+        const exactStart = new Date(customStartDate + "T12:00:00");
+        exactStart.setHours(0, 0, 0, 0);
+        if (!isNaN(exactStart.getTime())) {
+            fechaActual = exactStart;
+        }
+    }
+    // 2. Fallback Priority to unitStartDate (Unit Planification)
+    else if (unitStartDate) {
         const forceStart2 = new Date(unitStartDate + "T12:00:00");
         forceStart2.setHours(0, 0, 0, 0);
         if (!isNaN(forceStart2.getTime()) && forceStart2 > fechaActual) {
             fechaActual = forceStart2;
         }
     }
+
     let sesionesAgendadas = 0;
     daysSearched = 0;
 
