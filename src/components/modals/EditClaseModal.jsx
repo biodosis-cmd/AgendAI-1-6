@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { db } from '@/services/db';
-import { X, Loader2, EyeOff, CheckCircle2, Maximize2 } from 'lucide-react';
+import { X, Loader2, EyeOff, CheckCircle2, Maximize2, HeartHandshake } from 'lucide-react';
+import DuaGeneratorModal from './DuaGeneratorModal';
 
 const EditClaseModal = ({ isOpen, onClose, clase, onOpenZenMode }) => {
     const [fullText, setFullText] = useState('');
@@ -9,6 +10,7 @@ const EditClaseModal = ({ isOpen, onClose, clase, onOpenZenMode }) => {
     const [motivoSuspension, setMotivoSuspension] = useState('');
     const [isMarkingSuspended, setIsMarkingSuspended] = useState(false);
     const [duracion, setDuracion] = useState(90);
+    const [isDuaModalOpen, setIsDuaModalOpen] = useState(false);
 
     const updateTimeoutRef = useRef(null);
 
@@ -117,7 +119,15 @@ const EditClaseModal = ({ isOpen, onClose, clase, onOpenZenMode }) => {
                         <p className="text-gray-400">{new Date(claseData.fecha).toLocaleString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                        {/* Duration Selector Removed */}
+                        {/* Botón de Adaptación DUA */}
+                        <button
+                            onClick={() => setIsDuaModalOpen(true)}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white font-bold shadow-lg shadow-fuchsia-900/20 hover:scale-105 active:scale-95 transition-all"
+                            title="Generar Adaptaciones DUA para esta Clase"
+                        >
+                            <HeartHandshake size={16} />
+                            <span className="text-xs hidden md:inline">Adaptación DUA</span>
+                        </button>
 
                         <button
                             onClick={() => onOpenZenMode(claseData)}
@@ -150,6 +160,36 @@ const EditClaseModal = ({ isOpen, onClose, clase, onOpenZenMode }) => {
                     {isSaving && <><Loader2 size={12} className="animate-spin" /> Guardando...</>}
                     {!isSaving && claseEjecutada && <><CheckCircle2 size={12} className="text-green-500" /> Guardado</>}
                 </div>
+
+                {/* VISOR DUA GUARDADO */}
+                {claseData.dua && claseData.dua.length > 0 && (
+                    <div className="mt-4 bg-slate-900 border border-fuchsia-900/50 rounded-xl p-4 animate-in fade-in">
+                        <div className="flex justify-between items-center mb-3">
+                            <h4 className="text-sm font-bold text-fuchsia-400 flex items-center gap-2">
+                                <HeartHandshake size={16} /> Adecuaciones DUA Guardadas
+                            </h4>
+                            <button
+                                onClick={async () => {
+                                    if (confirm('¿Eliminar adecuaciones DUA de esta clase?')) {
+                                        await db.classes.update(claseData.id, { dua: null });
+                                        setClaseData(prev => ({ ...prev, dua: null }));
+                                    }
+                                }}
+                                className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                            >
+                                Eliminar
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-40 overflow-y-auto custom-scrollbar pr-2">
+                            {claseData.dua.map((d, i) => (
+                                <div key={i} className="bg-slate-800 p-3 rounded-lg border border-slate-700">
+                                    <p className="text-xs font-bold text-slate-300 mb-1">{d.perfil_nee}</p>
+                                    <p className="text-xs text-slate-400 line-clamp-3">{d.sugerencia_practica}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 <div className="mt-4 pt-4 border-t border-gray-700">
                     {claseEjecutada ? (
@@ -191,6 +231,15 @@ const EditClaseModal = ({ isOpen, onClose, clase, onOpenZenMode }) => {
                     )}
                 </div>
             </div>
+
+            <DuaGeneratorModal
+                isOpen={isDuaModalOpen}
+                onClose={() => setIsDuaModalOpen(false)}
+                claseData={claseData}
+                onDuaSaved={(newDuaData) => {
+                    setClaseData(prev => ({ ...prev, dua: newDuaData }));
+                }}
+            />
         </div>
     );
 };

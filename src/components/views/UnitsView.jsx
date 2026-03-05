@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Edit, Trash2, ChevronDown, List as ListIcon, Calendar as TimelineIcon, FileDown, FileText, Sparkles } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronDown, List as ListIcon, Calendar as TimelineIcon, FileDown, FileText, Sparkles, ClipboardCheck, Check } from 'lucide-react';
 import UnitModal from '@/components/modals/UnitModal';
 import YearlyUnitGeneratorModal from '@/components/modals/YearlyUnitGeneratorModal';
+import EvaluationGeneratorModal from '@/components/modals/EvaluationGeneratorModal';
 import TimelineView from './TimelineView';
 import { generateAnnualPlanPDF } from '@/utils/annualPlanPdf';
 import { generateAnnualPlanWord } from '@/utils/annualPlanWord';
@@ -22,6 +23,13 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
     const { validYear, actions } = useUI(); // Get context
     const [unitModalOpen, setUnitModalOpen] = useState(false);
     const [yearlyModalOpen, setYearlyModalOpen] = useState(false);
+    const [evaluationModalOpen, setEvaluationModalOpen] = useState(false);
+    const [evalContext, setEvalContext] = useState({ curso: '', asignatura: '', oa: '', detalles: [], selectedClassesData: null });
+
+    // --- NUEVO: ESTADOS DE SELECCIÓN DE CLASES (SECUENCIA) ---
+    const [selectingClassesForUnit, setSelectingClassesForUnit] = useState(null); // Guarda el ID de la unidad en modo selección
+    const [selectedClasses, setSelectedClasses] = useState([]); // Arreglo de IDs de clases seleccionadas
+
     const [unitToEdit, setUnitToEdit] = useState(null);
     const [expandedUnitId, setExpandedUnitId] = useState(null);
     const [viewMode, setViewMode] = useState('list'); // Default to list for easy access
@@ -249,7 +257,12 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
                                                     </div>
                                                     {isExpanded && (
                                                         <div className="border-t border-slate-700/50 p-5 bg-slate-800/20">
-                                                            <h5 className="font-semibold text-lg mb-2 text-indigo-300">Objetivos de la Unidad</h5>
+                                                            <div className="flex justify-between items-center mb-2">
+                                                                <h5 className="font-semibold text-lg text-indigo-300">Objetivos de la Unidad</h5>
+                                                                <button onClick={(e) => { e.stopPropagation(); setEvalContext({ curso: unit.curso, asignatura: unit.asignatura, oa: unit.objetivos, detalles: unit.detalles, selectedClassesData: null }); setEvaluationModalOpen(true); }} className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-bold transition-colors">
+                                                                    <ClipboardCheck size={14} /> Evaluar Unidad (Global)
+                                                                </button>
+                                                            </div>
                                                             <p className="text-slate-300 whitespace-pre-wrap text-sm mb-6 leading-relaxed bg-slate-900/30 p-3 rounded-lg border border-slate-700/30">{unit.objetivos || 'No hay objetivos definidos.'}</p>
 
                                                             {oaCodes.length > 0 && (
@@ -265,15 +278,83 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
                                                                 </div>
                                                             )}
 
-                                                            <h5 className="font-semibold text-lg mb-3 text-indigo-300">Clases Vinculadas</h5>
+                                                            <div className="flex justify-between items-center mb-3 mt-6">
+                                                                <h5 className="font-semibold text-lg text-indigo-300">Clases Vinculadas</h5>
+
+                                                                {linkedClasses.length > 0 && (
+                                                                    selectingClassesForUnit === unit.id ? (
+                                                                        <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-200">
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    setSelectingClassesForUnit(null);
+                                                                                    setSelectedClasses([]);
+                                                                                }}
+                                                                                className="px-3 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition">
+                                                                                Cancelar
+                                                                            </button>
+                                                                            <button
+                                                                                disabled={selectedClasses.length === 0}
+                                                                                onClick={() => {
+                                                                                    const fullClassesData = linkedClasses.filter(c => selectedClasses.includes(c.id));
+                                                                                    setEvalContext({ curso: unit.curso, asignatura: unit.asignatura, oa: unit.objetivos, detalles: unit.detalles, selectedClassesData: fullClassesData });
+                                                                                    setEvaluationModalOpen(true);
+                                                                                    setSelectingClassesForUnit(null);
+                                                                                    setSelectedClasses([]);
+                                                                                }}
+                                                                                className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                                                                                <Sparkles size={14} />
+                                                                                Secuencia: ({selectedClasses.length})
+                                                                            </button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <button
+                                                                            onClick={() => setSelectingClassesForUnit(unit.id)}
+                                                                            className="flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded-lg text-xs font-bold transition-colors border border-slate-700/50">
+                                                                            <ListIcon size={14} /> Evaluar Secuencia
+                                                                        </button>
+                                                                    )
+                                                                )}
+                                                            </div>
+
                                                             {linkedClasses.length > 0 ? (
                                                                 <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                                    {linkedClasses.map(clase => (
-                                                                        <li key={clase.id} onClick={() => onEditClase(clase)} className="flex justify-between items-center p-3 rounded-lg bg-slate-800/50 border border-slate-700/30 hover:border-indigo-500/50 hover:bg-slate-800 transition-all cursor-pointer group">
-                                                                            <span className="text-slate-200 font-medium">{new Date(clase.fecha).toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
-                                                                            <span className="text-xs text-slate-500 group-hover:text-slate-300 truncate max-w-[150px] transition-colors">{clase.objetivo}</span>
-                                                                        </li>
-                                                                    ))}
+                                                                    {linkedClasses.map(clase => {
+                                                                        const isSelectMode = selectingClassesForUnit === unit.id;
+                                                                        const isSelected = selectedClasses.includes(clase.id);
+
+                                                                        return (
+                                                                            <li key={clase.id}
+                                                                                onClick={() => {
+                                                                                    if (isSelectMode) {
+                                                                                        setSelectedClasses(prev =>
+                                                                                            isSelected ? prev.filter(id => id !== clase.id) : [...prev, clase.id]
+                                                                                        );
+                                                                                    } else {
+                                                                                        onEditClase(clase);
+                                                                                    }
+                                                                                }}
+                                                                                className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer group
+                                                                                    ${isSelectMode
+                                                                                        ? isSelected ? 'bg-indigo-900/40 border-indigo-500/60 shadow-[0_0_15px_rgba(99,102,241,0.2)]' : 'bg-slate-900/60 border-slate-700/60 opacity-60 hover:opacity-100 hover:border-slate-500'
+                                                                                        : 'bg-slate-800/50 border-slate-700/30 hover:border-indigo-500/50 hover:bg-slate-800'
+                                                                                    }`}
+                                                                            >
+                                                                                {isSelectMode && (
+                                                                                    <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors flex-shrink-0 ${isSelected ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-slate-600'}`}>
+                                                                                        {isSelected && <Check size={14} strokeWidth={3} />}
+                                                                                    </div>
+                                                                                )}
+                                                                                <div className="flex-1 min-w-0 flex justify-between items-center">
+                                                                                    <span className={`font-medium ${isSelected ? 'text-indigo-200' : 'text-slate-200'}`}>
+                                                                                        {new Date(clase.fecha).toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                                                                    </span>
+                                                                                    <span className={`text-xs truncate max-w-[150px] transition-colors ${isSelected ? 'text-indigo-300/80' : 'text-slate-500 group-hover:text-slate-300'}`}>
+                                                                                        {clase.objetivo}
+                                                                                    </span>
+                                                                                </div>
+                                                                            </li>
+                                                                        );
+                                                                    })}
                                                                 </ul>
                                                             ) : (
                                                                 <p className="text-slate-500 text-sm italic">No hay clases planificadas para esta unidad.</p>
@@ -292,6 +373,7 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
             )}
             <UnitModal isOpen={unitModalOpen} onClose={handleCloseModal} userId={userId} unitToEdit={unitToEdit} selectedYear={selectedYear} selectedWeek={selectedWeek} schedules={schedules} units={units} />
             <YearlyUnitGeneratorModal isOpen={yearlyModalOpen} onClose={() => setYearlyModalOpen(false)} userId={userId} selectedYear={selectedYear} schedules={schedules} units={units} />
+            <EvaluationGeneratorModal isOpen={evaluationModalOpen} onClose={() => setEvaluationModalOpen(false)} curso={evalContext.curso} asignatura={evalContext.asignatura} oa={evalContext.oa} detalles={evalContext.detalles} selectedClassesData={evalContext.selectedClassesData} />
         </main>
     );
 };

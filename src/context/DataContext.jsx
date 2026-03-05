@@ -29,7 +29,6 @@ export const DataProvider = ({ children }) => {
         const unsubSchedules = subscribeToSchedules(currentUserId, (data) => {
             const sorted = [...data].sort((a, b) => b.id - a.id);
             setSchedules(sorted);
-            console.log("DataContext Loaded for", currentUserId, ":", sorted.length, "schedules");
             setLoading(false);
         });
 

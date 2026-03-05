@@ -71,7 +71,7 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
     const exportarACSV = () => {
         if (!validateName()) return;
 
-        const headers = ['Fecha', 'Hora', 'Semana', 'Curso', 'Asignatura', 'Estado', 'Motivo Suspensión', 'Objetivo Clase', 'Inicio', 'Desarrollo', 'Aplicacion', 'Cierre', 'N° Unidad', 'Unidad', 'Objetivos Unidad'];
+        const headers = ['Fecha', 'Hora', 'Semana', 'Curso', 'Asignatura', 'Estado', 'Motivo Suspensión', 'Objetivo Clase', 'Inicio', 'Desarrollo', 'Aplicacion', 'Cierre', 'Adecuaciones DUA', 'N° Unidad', 'Unidad', 'Objetivos Unidad'];
         const rows = clasesFiltradas.map(c => {
             const fecha = new Date(c.fecha);
             const unit = findUnitForClass(c);
@@ -89,6 +89,7 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
                 ejecutada ? sanitize(c.desarrollo) : '',
                 ejecutada ? sanitize(c.aplicacion) : '',
                 ejecutada ? sanitize(c.cierre) : '',
+                ejecutada && c.dua ? sanitize(c.dua.map(d => `[${d.perfil_nee}] ${d.sugerencia_practica}`).join('\n')) : '',
                 ejecutada ? (unit && unit.numero ? unit.numero : 'N/A') : '', // N° Unidad
                 ejecutada ? sanitize(unit ? unit.nombre : 'N/A') : '',
                 ejecutada ? sanitize(unit ? unit.objetivos : 'N/A') : ''
@@ -156,6 +157,9 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
                     if (c.desarrollo) secuencia += `DESARROLLO:\n${c.desarrollo.replace(/^\s*(desarrollo)[\s:]*/i, '').trim()}\n\n`;
                     if (c.aplicacion) secuencia += `APLICACIÓN:\n${c.aplicacion.replace(/^\s*(aplicaci[oó]n)[\s:]*/i, '').trim()}\n\n`;
                     if (c.cierre) secuencia += `CIERRE:\n${c.cierre.replace(/^\s*(cierre)[\s:]*/i, '').trim()}`;
+                    if (c.dua && c.dua.length > 0) {
+                        secuencia += `\n\nADECUACIONES DUA:\n${c.dua.map(d => `• ${d.perfil_nee}: ${d.sugerencia_practica}`).join('\n')}`;
+                    }
 
                     let oa = c.objetivo || '';
                     if (unit) {

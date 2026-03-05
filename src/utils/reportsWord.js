@@ -222,6 +222,12 @@ export const generateReportListWord = async (clases, teacherName, year, filters,
                 }
             });
 
+            if (c.dua && c.dua.length > 0) {
+                bodyChildren.push(createTextParagraph("ADECUACIONES DUA:", { bold: true, size: 20 }));
+                const duaText = c.dua.map(d => `• [${d.perfil_nee}] ${d.sugerencia_practica}`).join('\n');
+                bodyChildren.push(createTextParagraph(duaText, { size: 20, spacing: { after: 200 } }));
+            }
+
         } else {
             // Suspended Class
             bodyChildren.push(
@@ -372,11 +378,16 @@ export const generateReportTableWord = async (clases, teacherName, year, filters
                 cell4Content.push(createTextParagraph(sec.title + ":", { bold: true }));
                 cell4Content.push(createTextParagraph(clean));
 
-                // Add spacer only if it's not the last item
-                if (index < validSections.length - 1) {
+                if (index < validSections.length - 1 || (c.dua && c.dua.length > 0)) {
                     cell4Content.push(createTextParagraph(""));
                 }
             });
+
+            if (c.dua && c.dua.length > 0) {
+                cell4Content.push(createTextParagraph("ADECUACIONES DUA:", { bold: true }));
+                const duaText = c.dua.map(d => `• [${d.perfil_nee}] ${d.sugerencia_practica}`).join('\n');
+                cell4Content.push(createTextParagraph(duaText));
+            }
 
         } else {
             // Suspended

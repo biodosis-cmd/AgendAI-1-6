@@ -55,8 +55,7 @@ const AppContent = () => {
 
     if (authLoading) return <div className="bg-slate-900 text-white min-h-screen flex items-center justify-center"><LoadingSpinner /></div>;
     if (!currentUser) return <LoginView />;
-    console.log("App actions:", actions);
-    console.log("App actions.setView:", actions?.setView);
+
 
     return (
         <div className="min-h-screen font-sans text-slate-100 pb-10">
