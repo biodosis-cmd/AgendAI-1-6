@@ -147,19 +147,19 @@ const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }
                     {/* Opción 2: Rápida */}
                     <button
                         onClick={onOpenAiModal}
-                        className="group relative overflow-hidden rounded-[2rem] p-8 text-left transition-all hover:scale-[1.02] border border-slate-800 bg-slate-900/50 hover:bg-slate-800/50 hover:border-violet-500/50"
+                        className="group relative overflow-hidden rounded-[2rem] p-8 text-left transition-all hover:scale-[1.02] border border-slate-800 bg-slate-900/50 hover:bg-slate-800/50 hover:border-amber-500/50"
                     >
-                        <div className="absolute top-0 right-0 p-32 bg-violet-500/10 blur-[100px] rounded-full group-hover:bg-violet-500/20 transition-all"></div>
+                        <div className="absolute top-0 right-0 p-32 bg-amber-500/10 blur-[100px] rounded-full group-hover:bg-amber-500/20 transition-all"></div>
 
                         <div className="relative z-10 flex flex-col h-full justify-between gap-8">
-                            <div className="w-14 h-14 rounded-2xl bg-violet-500/10 flex items-center justify-center text-violet-400 mb-2 group-hover:scale-110 transition-transform duration-300">
+                            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-400 mb-2 group-hover:scale-110 transition-transform duration-300">
                                 <Sparkles size={32} />
                             </div>
 
                             <div>
                                 <h3 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
                                     PlanificAI Rápida
-                                    <ArrowRight className="w-5 h-5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-violet-400" />
+                                    <ArrowRight className="w-5 h-5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-amber-400" />
                                 </h3>
                                 <p className="text-slate-400 leading-relaxed text-sm">
                                     Crea y agenda automáticamente tus clases libremente o bien, crea todas las clases de tus unidades de golpe.
