@@ -12,6 +12,12 @@ const extractOAsFromString = (text) => {
     return matches ? matches.map(m => m.toUpperCase().replace(/\s+/, ' ')) : [];
 };
 
+const sortOAs = (a, b) => {
+    const numA = parseInt(a.replace(/\D/g, ''), 10) || 0;
+    const numB = parseInt(b.replace(/\D/g, ''), 10) || 0;
+    return numA - numB;
+};
+
 const DashboardView = ({ clases, units, selectedYear, userId }) => {
     const [filtroCurso, setFiltroCurso] = useState('');
     const [filtroAsignatura, setFiltroAsignatura] = useState('');
@@ -76,6 +82,9 @@ const DashboardView = ({ clases, units, selectedYear, userId }) => {
         let percentage = expectedCount === 0 ? 0 : Math.round((coveredCount / expectedCount) * 100);
         if (percentage > 100) percentage = 100;
 
+        const coveredOasList = Array.from(coveredOas).sort(sortOAs);
+        const pendingOasList = Array.from(totalOas).filter(oa => !coveredOas.has(oa)).sort(sortOAs);
+
         // Chart Data for Donut
         const coverageData = [
             { name: 'OAs Cubiertos', value: coveredCount },
@@ -96,7 +105,9 @@ const DashboardView = ({ clases, units, selectedYear, userId }) => {
             totalPlanificadas: filteredClasses.length,
             totalEjecutadas: executedClasses.length,
             totalUnidades: filteredUnits.length,
-            uncoveredCount: Math.max(expectedCount - coveredCount, 0)
+            uncoveredCount: Math.max(expectedCount - coveredCount, 0),
+            coveredOasList,
+            pendingOasList
         };
     }, [clasesDelAno, unitsDelAno, filtroCurso, filtroAsignatura]);
 
@@ -228,6 +239,36 @@ const DashboardView = ({ clases, units, selectedYear, userId }) => {
                                     {metrics.percentage}%
                                 </span>
                                 <span className="text-xs text-slate-400 font-medium tracking-wide mt-1">COBERTURA</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Lists of OAs */}
+                    {(metrics.expectedCount > 0 || metrics.coveredCount > 0) && (
+                        <div className="w-full mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-slate-900/50 p-4 rounded-xl border border-emerald-500/20 h-48 overflow-y-auto custom-scrollbar">
+                                <h4 className="text-emerald-400 font-medium mb-3 flex items-center gap-2 text-sm sticky top-0 bg-slate-900/90 py-1 z-10 backdrop-blur-sm">
+                                    <Check size={16} /> Abordados ({metrics.coveredOasList.length})
+                                </h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {metrics.coveredOasList.length > 0 ? metrics.coveredOasList.map(oa => (
+                                        <span key={oa} className="px-2 py-1 bg-emerald-500/10 text-emerald-300 text-xs rounded-md border border-emerald-500/20 font-medium">
+                                            {oa}
+                                        </span>
+                                    )) : <span className="text-slate-500 text-xs italic">Ninguno registrado</span>}
+                                </div>
+                            </div>
+                            <div className="bg-slate-900/50 p-4 rounded-xl border border-rose-500/20 h-48 overflow-y-auto custom-scrollbar">
+                                <h4 className="text-rose-400 font-medium mb-3 flex items-center gap-2 text-sm sticky top-0 bg-slate-900/90 py-1 z-10 backdrop-blur-sm">
+                                    <Target size={16} /> Pendientes ({metrics.pendingOasList.length})
+                                </h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {metrics.pendingOasList.length > 0 ? metrics.pendingOasList.map(oa => (
+                                        <span key={oa} className="px-2 py-1 bg-rose-500/10 text-rose-300 text-xs rounded-md border border-rose-500/20 font-medium">
+                                            {oa}
+                                        </span>
+                                    )) : <span className="text-slate-500 text-xs italic">Ninguno pendiente</span>}
+                                </div>
                             </div>
                         </div>
                     )}
