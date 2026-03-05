@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, BookOpen, Sparkles, ArrowRight, Settings, Plus, FileText } from 'lucide-react';
+import { Calendar, Clock, BookOpen, Sparkles, ArrowRight, Settings, Plus, FileText, Users } from 'lucide-react';
 
 const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }) => {
 
@@ -32,7 +32,7 @@ const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }
         {
             title: "Adaptador DUA Inclusivo",
             desc: "Selecciona y detalla las Necesidades Educativas Especiales (NEE) de tu curso para obtener estrategias y adecuaciones personalizadas.",
-            icon: <Calendar className="text-blue-400" size={24} />
+            icon: <Users className="text-blue-400" size={24} />
         },
         {
             title: "Sistema de Evaluación Integrado",
@@ -43,6 +43,11 @@ const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }
             title: "Reportes Profesionales Instantáneos",
             desc: "Descarga documentos con formato formal y reportes de cobertura curricular listos para presentar, imprimir o archivar.",
             icon: <FileText className="text-fuchsia-400" size={24} />
+        },
+        {
+            title: "Calendario y Horario Inteligente",
+            desc: "Visualiza tus clases en un calendario dinámico que respeta feriados y distribuye el contenido guiándose por tu horario.",
+            icon: <Calendar className="text-indigo-400" size={24} />
         }
     ];
 
@@ -193,13 +198,6 @@ const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }
                             </div>
                         </div>
                     ))}
-                </div>
-
-                <div className="mt-12 text-center">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700/50 text-slate-400 text-sm">
-                        <Calendar size={14} className="text-indigo-400" />
-                        <span>Calendario dinámico con soporte para feriados</span>
-                    </div>
                 </div>
             </div>
 
