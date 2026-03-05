@@ -315,7 +315,7 @@ IMPORTANTE:
                         <div className="max-w-2xl mx-auto w-full space-y-6 animate-in fade-in slide-in-from-bottom-4">
                             <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex gap-3 text-blue-300 text-sm">
                                 <Layers className="flex-shrink-0 mt-0.5" size={18} />
-                                <p>Este generador creará <strong>múltiples unidades sin fecha asignada</strong>. Podrás verlas en tu lista y asignarles su periodo en el calendario más adelante.</p>
+                                <p>Este generador creará <strong>múltiples unidades planificadas y sincronizadas con tu calendario real</strong>. La IA calculará inteligentemente la duración y asignará las fechas de inicio y término a lo largo de todo tu año escolar de forma automática.</p>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
