@@ -124,7 +124,7 @@ const WeeklyView = ({ selectedWeek, selectedYear, clases, onWeekChange, onEdit, 
                             className="h-10 w-10 flex items-center justify-center rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 shadow-lg active:scale-95 transition-all"
                             title="Unidades"
                         >
-                            <BookOpen size={20} />
+                            <Sparkles size={20} />
                         </button>
                     </div>
                 </div>
@@ -150,7 +150,7 @@ const WeeklyView = ({ selectedWeek, selectedYear, clases, onWeekChange, onEdit, 
                         className="h-8 w-8 flex items-center justify-center rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition-all hover:scale-105 active:scale-95 mr-3"
                         title="Gestionar Unidades"
                     >
-                        <BookOpen size={16} />
+                        <Sparkles size={16} />
                     </button>
 
                     <div className="h-6 w-px bg-slate-700/50 mx-1"></div>

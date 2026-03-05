@@ -133,7 +133,7 @@ const Sidebar = ({
                     `}
                     title="PlanificAI unidad"
                 >
-                    <BookOpen size={20} className="shrink-0 text-emerald-500/80 group-hover:text-emerald-400" />
+                    <Sparkles size={20} className="shrink-0 text-emerald-500/80 group-hover:text-emerald-400" />
                     {(!isCollapsed || isMobileOpen) && <span className="font-medium text-sm">PlanificAI unidad</span>}
                 </button>
 
