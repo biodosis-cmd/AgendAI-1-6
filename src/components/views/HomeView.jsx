@@ -19,22 +19,6 @@ const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }
             color: "amber",
             btnText: "Horarios",
             action: null // Informativo o enviar a vista horarios si existe
-        },
-        {
-            title: "Extensión de Unidades",
-            desc: "Crea tus unidades manualmente o programa tu año completo.",
-            icon: <BookOpen size={28} className="text-emerald-400" />,
-            color: "emerald",
-            btnText: "Gestor de Unidades",
-            action: onNavigateUnits
-        },
-        {
-            title: "Planificación de Clases",
-            desc: "Crea y agenda automáticamente tus clases libremente o bien, crea todas las clases de tus unidades.",
-            icon: <Sparkles size={28} className="text-violet-400" />,
-            color: "violet",
-            btnText: "Generador Mágico",
-            action: onOpenAiModal
         }
     ];
 
@@ -53,29 +37,25 @@ const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }
                 </h1>
 
                 <p className="text-slate-400 text-lg leading-relaxed">
-                    Sigue estos <strong className="text-white">4 sencillos pasos</strong> para configurar tu asistente y preparar tu año escolar en tiempo récord.
+                    Completa estos <strong className="text-white">2 pasos previos obligatorios</strong> antes de poder automatizar tu planificación.
                 </p>
             </div>
 
-            {/* Workflow / Tutorial Section */}
-            <div className="w-full max-w-5xl relative">
+            {/* Config & Setup Section (2 Steps Only) */}
+            <div className="w-full max-w-3xl relative mb-16">
 
                 {/* Línea conectora Desktop */}
-                <div className="hidden lg:block absolute top-28 left-[10%] right-[10%] h-0.5 bg-gradient-to-r from-blue-500/20 via-emerald-500/20 to-violet-500/20 -z-10"></div>
+                <div className="hidden md:block absolute top-28 left-[15%] right-[15%] h-0.5 bg-gradient-to-r from-blue-500/20 to-amber-500/20 -z-10"></div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 z-10 relative">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 z-10 relative">
                     {tutorialSteps.map((step, idx) => {
                         const bgColors = {
                             blue: 'hover:border-blue-500/50',
                             amber: 'hover:border-amber-500/50',
-                            emerald: 'hover:border-emerald-500/50',
-                            violet: 'hover:border-violet-500/50',
                         };
                         const iconBgColors = {
                             blue: 'bg-blue-500/20 border-blue-500/30',
                             amber: 'bg-amber-500/20 border-amber-500/30',
-                            emerald: 'bg-emerald-500/20 border-emerald-500/30',
-                            violet: 'bg-violet-500/20 border-violet-500/30',
                         };
 
                         return (
@@ -99,20 +79,81 @@ const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }
                                     <button
                                         onClick={step.action}
                                         className={`w-full py-3 rounded-xl font-bold text-sm flex justify-center items-center gap-2 transition-all group-hover:shadow-lg ${step.color === 'blue' ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20' :
-                                            step.color === 'emerald' ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20' :
-                                                'bg-violet-600 hover:bg-violet-500 text-white shadow-violet-900/20'
+                                                'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-900/20'
                                             }`}
                                     >
                                         {step.btnText} <ArrowRight size={16} />
                                     </button>
                                 ) : (
                                     <div className="w-full py-3 rounded-xl font-bold text-sm flex justify-center items-center gap-2 bg-slate-800/50 text-slate-500 border border-slate-800 cursor-not-allowed">
-                                        Pendiente de Asignación
+                                        Pendientes
                                     </div>
                                 )}
                             </div>
                         );
                     })}
+                </div>
+            </div>
+
+            <div className="w-full max-w-4xl border-t border-slate-800/50 pt-16">
+
+                <div className="text-center mb-10">
+                    <h2 className="text-3xl font-bold text-white mb-3">Planificación Inteligente</h2>
+                    <p className="text-slate-500 max-w-xl mx-auto">
+                        Una vez configurado tu año y horario, utiliza estas herramientas para dejar que la IA haga el trabajo pesado por ti.
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl mx-auto">
+
+                    {/* Opción 1: Unidades */}
+                    <button
+                        onClick={onNavigateUnits}
+                        className="group relative overflow-hidden rounded-[2rem] p-8 text-left transition-all hover:scale-[1.02] border border-slate-800 bg-slate-900/50 hover:bg-slate-800/50 hover:border-emerald-500/50"
+                    >
+                        <div className="absolute top-0 right-0 p-32 bg-emerald-500/10 blur-[100px] rounded-full group-hover:bg-emerald-500/20 transition-all"></div>
+
+                        <div className="relative z-10 flex flex-col h-full justify-between gap-8">
+                            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-2 group-hover:scale-110 transition-transform duration-300">
+                                <Sparkles size={32} />
+                            </div>
+
+                            <div>
+                                <h3 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+                                    PlanificAI Unidad
+                                    <ArrowRight className="w-5 h-5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-emerald-400" />
+                                </h3>
+                                <p className="text-slate-400 leading-relaxed text-sm">
+                                    Crea tus unidades manualmente o programa tu año completo importando formatos del Mineduc o texto libre.
+                                </p>
+                            </div>
+                        </div>
+                    </button>
+
+                    {/* Opción 2: Rápida */}
+                    <button
+                        onClick={onOpenAiModal}
+                        className="group relative overflow-hidden rounded-[2rem] p-8 text-left transition-all hover:scale-[1.02] border border-slate-800 bg-slate-900/50 hover:bg-slate-800/50 hover:border-violet-500/50"
+                    >
+                        <div className="absolute top-0 right-0 p-32 bg-violet-500/10 blur-[100px] rounded-full group-hover:bg-violet-500/20 transition-all"></div>
+
+                        <div className="relative z-10 flex flex-col h-full justify-between gap-8">
+                            <div className="w-14 h-14 rounded-2xl bg-violet-500/10 flex items-center justify-center text-violet-400 mb-2 group-hover:scale-110 transition-transform duration-300">
+                                <Sparkles size={32} />
+                            </div>
+
+                            <div>
+                                <h3 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+                                    PlanificAI Rápida
+                                    <ArrowRight className="w-5 h-5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-violet-400" />
+                                </h3>
+                                <p className="text-slate-400 leading-relaxed text-sm">
+                                    Crea y agenda automáticamente tus clases libremente o bien, crea todas las clases de tus unidades de golpe.
+                                </p>
+                            </div>
+                        </div>
+                    </button>
+
                 </div>
             </div>
 
