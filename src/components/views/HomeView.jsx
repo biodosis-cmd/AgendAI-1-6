@@ -138,7 +138,7 @@ const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }
                                     <ArrowRight className="w-5 h-5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-emerald-400" />
                                 </h3>
                                 <p className="text-slate-400 leading-relaxed text-sm">
-                                    Crea tus unidades manualmente o programa tu año completo importando formatos del Mineduc o texto libre.
+                                    Genera todas las clases de una unidad en instantes. Requiere que hayas creado tus unidades previamente desde la sección "Unidades" en el menú principal.
                                 </p>
                             </div>
                         </div>
