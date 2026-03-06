@@ -1,12 +1,12 @@
 import React from 'react';
 import { Calendar, Clock, BookOpen, Sparkles, ArrowRight, Settings, Plus, FileText, Users } from 'lucide-react';
 
-const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }) => {
+const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal, onOpenUnitPlanner }) => {
 
     const tutorialSteps = [
         {
             title: "Configura tu Año",
-            desc: "Define cuándo empieza, termina y cuáles son las vacaciones de tu año escolar.",
+            desc: "Define cuándo empieza y termina tu año escolar, incluyendo vacaciones de invierno y feriados, para maximizar la precisión de tus planificaciones.",
             icon: <Settings size={28} className="text-blue-400" />,
             color: "blue"
         },
@@ -120,9 +120,9 @@ const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal }
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl mx-auto">
 
-                    {/* Opción 1: Unidades */}
+                    {/* Opción 1: Unidades (Generador Modal) */}
                     <button
-                        onClick={onNavigateUnits}
+                        onClick={onOpenUnitPlanner}
                         className="group relative overflow-hidden rounded-[2rem] p-8 text-left transition-all hover:scale-[1.02] border border-slate-800 bg-slate-900/50 hover:bg-slate-800/50 hover:border-emerald-500/50"
                     >
                         <div className="absolute top-0 right-0 p-32 bg-emerald-500/10 blur-[100px] rounded-full group-hover:bg-emerald-500/20 transition-all"></div>
