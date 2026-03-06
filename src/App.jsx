@@ -131,6 +131,8 @@ const AppContent = () => {
                     onBackup={handleBackup}
                     onOpenUnitPlanner={handleOpenUnitPlanner}
                     onOpenAiModal={() => openModal('aiGeneration', { onClassesGenerated: handleSaveGeneratedClasses, selectedYear, selectedWeek, schedules, units })}
+                    onNavigateConfig={() => actions.setView('config')}
+                    onNavigateSchedules={() => actions.setView('schedules')}
                 />}
                 {view === 'calendar' && <WeeklyView
                     selectedWeek={selectedWeek}

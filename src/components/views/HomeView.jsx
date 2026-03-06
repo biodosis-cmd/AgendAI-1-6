@@ -1,20 +1,22 @@
 import React from 'react';
 import { Calendar, Clock, BookOpen, Sparkles, ArrowRight, Settings, Plus, FileText, Users } from 'lucide-react';
 
-const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal, onOpenUnitPlanner }) => {
+const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal, onOpenUnitPlanner, onNavigateSchedules }) => {
 
     const tutorialSteps = [
         {
             title: "Configura tu Año",
             desc: "Define cuándo empieza y termina tu año escolar, incluyendo vacaciones de invierno y feriados, para maximizar la precisión de tus planificaciones.",
             icon: <Settings size={28} className="text-blue-400" />,
-            color: "blue"
+            color: "blue",
+            action: onNavigateConfig
         },
         {
             title: "Carga tu Horario",
             desc: "Envíanos tu horario semanal de clases para cargarlo en el sistema.",
             icon: <Clock size={28} className="text-amber-400" />,
-            color: "amber"
+            color: "amber",
+            action: onNavigateSchedules
         }
     ];
 
@@ -88,7 +90,11 @@ const HomeView = ({ userName, onNavigateConfig, onNavigateUnits, onOpenAiModal, 
                         };
 
                         return (
-                            <div key={idx} className={`relative bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col transition-all duration-300 hover:-translate-y-2 group ${bgColors[step.color]}`}>
+                            <div
+                                key={idx}
+                                onClick={step.action}
+                                className={`relative bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col transition-all duration-300 hover:-translate-y-2 group cursor-pointer ${bgColors[step.color]}`}
+                            >
 
                                 {/* Número flotante */}
                                 <div className="absolute -top-4 left-6 w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-slate-400 group-hover:bg-slate-700 group-hover:text-white transition-colors z-20">
