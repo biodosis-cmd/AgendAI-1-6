@@ -187,11 +187,12 @@ export const saveGeneratedClassesBatch = async (classesData) => {
  * Limpia los datos actuales del usuario y restaura los nuevos.
  */
 export const restoreBackupData = async (backupData, userId, options = { restoreSchedules: true }) => {
-    return db.transaction('rw', db.classes, db.units, db.schedules, async () => {
+    return db.transaction('rw', db.classes, db.units, db.schedules, db.school_years, async () => {
         // 1. Limpiar datos existentes para este usuario (opcional, o bulkPut sobrescribe)
         // Para una restauración limpia, mejor borrar lo del usuario primero.
         await db.classes.where('userId').equals(userId).delete();
         await db.units.where('userId').equals(userId).delete();
+        await db.school_years.where('userId').equals(userId).delete();
 
         if (options.restoreSchedules) {
             await db.schedules.where('userId').equals(userId).delete();
@@ -211,6 +212,11 @@ export const restoreBackupData = async (backupData, userId, options = { restoreS
         if (options.restoreSchedules && backupData.schedules && backupData.schedules.length > 0) {
             const schedulesToImport = backupData.schedules.map(s => ({ ...s, userId }));
             await db.schedules.bulkAdd(schedulesToImport);
+        }
+
+        if (backupData.school_years && backupData.school_years.length > 0) {
+            const schoolYearsToImport = backupData.school_years.map(sy => ({ ...sy, userId }));
+            await db.school_years.bulkAdd(schoolYearsToImport);
         }
     });
 };

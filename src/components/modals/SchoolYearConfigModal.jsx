@@ -42,7 +42,13 @@ const SchoolYearConfigModal = ({ isOpen, onClose, year = new Date().getFullYear(
         try {
             // Ensure userId is attached
             const configToSave = { ...config, userId };
-            await saveSchoolYearConfig(configToSave);
+            const savedId = await saveSchoolYearConfig(configToSave);
+            
+            // Si es un documento nuevo, Dexie retorna el ID autogenerado. Actualizar estado para evitar el estado fantasma.
+            if (savedId) {
+                setConfig(prev => ({ ...prev, id: savedId }));
+            }
+            
             onClose();
             // Optional: Trigger a toast or global refresh if needed
         } catch (e) {

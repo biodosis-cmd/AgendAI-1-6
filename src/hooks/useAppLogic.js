@@ -195,7 +195,7 @@ export const useAppLogic = () => {
 
             openModal('confirmation', {
                 title: 'Restaurar Copia de Seguridad',
-                message: `⚠️ ADVERTENCIA: Esta acción REEMPLAZARÁ todos tus datos actuales (Clases y Unidades) por los del respaldo.\n\nSe encontraron en el respaldo:\n- ${backupData.classes.length} clases\n- ${backupData.units.length} unidades\n- ${backupData.schedules ? backupData.schedules.length : 0} horarios\n\n¿Estás seguro de que deseas continuar y SOBRESCRIBIR tus datos?`,
+                message: `⚠️ ADVERTENCIA: Esta acción REEMPLAZARÁ todos tus datos actuales (Clases y Unidades) por los del respaldo.\n\nSe encontraron en el respaldo:\n- ${backupData.classes.length} clases\n- ${backupData.units.length} unidades\n- ${backupData.schedules ? backupData.schedules.length : 0} horarios\n- ${backupData.school_years ? backupData.school_years.length : 0} configuraciones de año escolar\n\n¿Estás seguro de que deseas continuar y SOBRESCRIBIR tus datos?`,
                 onConfirm: async () => {
                     let restoreSchedules = true;
                     if (backupData.schedules && backupData.schedules.length > 0) {

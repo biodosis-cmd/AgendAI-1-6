@@ -46,7 +46,13 @@ const ConfigView = ({ userId, selectedYear }) => {
         try {
             // Ensure userId is attached
             const configToSave = { ...config, userId };
-            await saveSchoolYearConfig(configToSave);
+            const savedId = await saveSchoolYearConfig(configToSave);
+            
+            // Si es un documento nuevo, Dexie retorna el ID autogenerado. Actualizar estado para evitar el estado fantasma.
+            if (savedId) {
+                setConfig(prev => ({ ...prev, id: savedId }));
+            }
+            
             // Trigger refresh or notification if needed
             alert("Configuración guardada correctamente");
         } catch (e) {

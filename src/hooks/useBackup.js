@@ -7,10 +7,13 @@ export const useBackup = ({ clases, units, schedules, userId }) => {
     const handleBackup = async () => {
         if (!userId) return;
         try {
+            const schoolYears = await db.school_years.where('userId').equals(userId).toArray();
+
             const backupData = {
                 classes: clases,
                 units: units,
-                schedules: schedules
+                schedules: schedules,
+                school_years: schoolYears
             };
 
             const jsonString = JSON.stringify(backupData, null, 2);
