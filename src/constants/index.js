@@ -16,7 +16,9 @@ export const LISTA_CURSOS = [
     '1ro Medio',
     '2do Medio',
     '3ro Medio',
-    '4to Medio'
+    '4to Medio',
+    '1er Ciclo',
+    '2do Ciclo'
 ];
 
 export const LISTA_ASIGNATURAS = [
@@ -70,6 +72,9 @@ export const CURSO_THEME = {
     '2do Medio': { base: 'orange', bg: 'bg-orange-50', text: 'text-orange-800', border: 'border-orange-200', accent: 'bg-orange-500', hover: 'hover:border-orange-400', shadow: 'shadow-orange-500/10' },
     '3ro Medio': { base: 'rose', bg: 'bg-rose-50', text: 'text-rose-800', border: 'border-rose-200', accent: 'bg-rose-500', hover: 'hover:border-rose-400', shadow: 'shadow-rose-500/10' },
     '4to Medio': { base: 'violet', bg: 'bg-violet-50', text: 'text-violet-800', border: 'border-violet-200', accent: 'bg-violet-600', hover: 'hover:border-violet-500', shadow: 'shadow-violet-500/10' },
+    
+    '1er Ciclo': { base: 'slate', bg: 'bg-slate-50', text: 'text-slate-800', border: 'border-slate-200', accent: 'bg-slate-500', hover: 'hover:border-slate-400', shadow: 'shadow-slate-500/10' },
+    '2do Ciclo': { base: 'slate', bg: 'bg-slate-50', text: 'text-slate-800', border: 'border-slate-200', accent: 'bg-slate-500', hover: 'hover:border-slate-400', shadow: 'shadow-slate-500/10' },
 };
 
 // Compatibilidad con versiones anteriores si es necesario, pero preferir usar CURSO_THEME
@@ -90,6 +95,8 @@ export const CURSO_COLORES = {
     '2do Medio': 'bg-orange-600',
     '3ro Medio': 'bg-rose-600',
     '4to Medio': 'bg-violet-700',
+    '1er Ciclo': 'bg-slate-500',
+    '2do Ciclo': 'bg-slate-500',
 };
 
 export const CURSO_HEX_COLORES = {
@@ -109,6 +116,8 @@ export const CURSO_HEX_COLORES = {
     '2do Medio': '#EA580C',
     '3ro Medio': '#E11D48',
     '4to Medio': '#7C3AED', // Violet/Purple (Distinct from Slate)
+    '1er Ciclo': '#64748B',
+    '2do Ciclo': '#64748B',
     'default': '#6B7280'
 };
 

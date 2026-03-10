@@ -40,12 +40,15 @@ const ClaseCard = ({ clase, onEdit, onDelete, style, isStatic = false, compact =
             suffix = parts[parts.length - 1];
         }
 
-        if (courseName.includes('Básico')) {
+        if (courseName.match(/básico/i)) {
             number = number.replace(/\D/g, ''); // Extract just digits
             label = 'Básico';
-        } else if (courseName.includes('Medio')) {
+        } else if (courseName.match(/medio/i)) {
             number = number.replace(/\D/g, '');
             label = 'Medio';
+        } else if (courseName.match(/ciclo/i)) {
+            number = courseName.replace(/ciclo/i, '').trim(); // Gets "1er" or "2do"
+            label = 'CICLO';
         } else {
             // NT1, NT2 casing
         }
@@ -77,7 +80,7 @@ const ClaseCard = ({ clase, onEdit, onDelete, style, isStatic = false, compact =
                 <div className={`
                     h-full flex flex-col items-center justify-center relative overflow-hidden flex-shrink-0
                     ${sidebarColor}
-                    ${isMicro ? 'w-8' : (isShort ? 'w-10' : 'w-10')}
+                    ${isMicro ? 'w-8' : (isShort ? 'w-10' : (clase.curso.match(/ciclo/i) ? 'w-12' : 'w-10'))}
                 `}>
                     {/* Subtle sheen on sidebar */}
                     <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-black/10 pointer-events-none"></div>
@@ -118,12 +121,15 @@ const ClaseCard = ({ clase, onEdit, onDelete, style, isStatic = false, compact =
                                 <div className="flex flex-col items-center justify-center leading-none">
                                     <span className={`
                                         font-black text-white drop-shadow-md z-10 leading-none flex items-center justify-center
-                                        ${isMicro ? 'text-[9px]' : 'text-xl'}
+                                        ${isMicro ? 'text-[9px]' : (label.includes('CICLO') ? 'text-lg tracking-tighter' : 'text-xl')}
                                     `}>
                                         {number}<span className={isNT ? "ml-0.5" : "ml-px"}>{suffix}</span>
                                     </span>
                                     {!isMicro && label && (
-                                        <span className="text-[9px] text-white/90 font-bold uppercase tracking-tighter mt-0.5 text-center leading-tight px-0.5 z-10">
+                                        <span className={`
+                                            text-white/90 font-bold uppercase mt-0.5 text-center leading-none px-0.5 z-10 block w-full
+                                            ${label.includes('CICLO') ? 'text-[9px] tracking-widest opacity-100' : 'text-[9px] tracking-tighter'}
+                                        `}>
                                             {label}
                                         </span>
                                     )}

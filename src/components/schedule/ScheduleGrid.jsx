@@ -93,7 +93,7 @@ const ScheduleGrid = ({
                                             <div className={`
                                             h-full flex flex-col items-center justify-center relative overflow-hidden flex-shrink-0
                                             ${blockColor}
-                                            w-10
+                                            ${block.curso.match(/ciclo/i) ? 'w-12' : 'w-10'}
                                         `}>
                                                 {/* Subtle sheen */}
                                                 <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-black/10 pointer-events-none"></div>
@@ -109,12 +109,15 @@ const ScheduleGrid = ({
                                                     const parts = courseName.split(' ');
                                                     if (parts.length >= 2 && parts[parts.length - 1].length === 1) suffix = parts[parts.length - 1];
 
-                                                    if (courseName.includes('Básico')) {
+                                                    if (courseName.match(/básico/i)) {
                                                         number = number.replace(/\D/g, '');
                                                         label = 'Básico';
-                                                    } else if (courseName.includes('Medio')) {
+                                                    } else if (courseName.match(/medio/i)) {
                                                         number = number.replace(/\D/g, '');
                                                         label = 'Medio';
+                                                    } else if (courseName.match(/ciclo/i)) {
+                                                        number = courseName.replace(/ciclo/i, '').trim();
+                                                        label = 'CICLO';
                                                     }
                                                     // Removed: if (suffix) label = `${label} ${suffix}`;
 
@@ -142,13 +145,13 @@ const ScheduleGrid = ({
                                                     } else {
                                                         // Standard Courses (1ro Básico, etc): Horizontal (Number + Letter side-by-side)
                                                         return (
-                                                            <div className="flex flex-col items-center justify-center leading-none">
-                                                                <span className="font-black text-white text-xl drop-shadow-md z-10 flex items-center justify-center leading-none">
+                                                            <div className="flex flex-col items-center justify-center leading-none w-full">
+                                                                <span className={`font-black text-white drop-shadow-md z-10 flex items-center justify-center leading-none ${label === 'CICLO' ? 'text-lg tracking-tighter' : 'text-xl'}`}>
                                                                     {number}
                                                                     {suffix && <span className="ml-0.5 text-lg opacity-90">{suffix}</span>}
                                                                 </span>
                                                                 {label && (
-                                                                    <span className="text-[6px] text-white/90 font-bold uppercase tracking-tighter mt-0.5 text-center leading-tight px-0.5 z-10">
+                                                                    <span className={`text-white/90 font-bold uppercase mt-0.5 text-center leading-none px-0.5 z-10 block w-full ${label === 'CICLO' ? 'text-[9px] tracking-widest opacity-100' : 'text-[6px] tracking-tighter'}`}>
                                                                         {label}
                                                                     </span>
                                                                 )}
