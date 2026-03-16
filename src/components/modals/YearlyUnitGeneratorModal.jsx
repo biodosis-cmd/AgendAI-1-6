@@ -144,6 +144,36 @@ Por favor, memoriza las siguientes fechas para la construcción temporal de las 
 - Días en que el profesor dicta esta clase específica: ${scheduleDetails}.
 - Horas Pedagógicas Disponibles en el Año: ~${estimatedHours} hrs.
 
+${(formData.curso === 'Taller' || formData.curso === 'Multi-curso') ? (() => {
+    const activeSchedule = schedules?.[0]?.scheduleData;
+    let foundCursos = null;
+    if (activeSchedule?.[formData.curso]) {
+        // Robust search: Look for 'cursos' in any block of any subject for this workshop
+        for (const blocks of Object.values(activeSchedule[formData.curso])) {
+            if (Array.isArray(blocks)) {
+                const blockWithCursos = blocks.find(b => b && b.cursos);
+                if (blockWithCursos) {
+                    foundCursos = blockWithCursos.cursos;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (foundCursos) {
+        const cursosStr = Array.isArray(foundCursos) ? foundCursos.join(', ') : foundCursos;
+        return `
+[INSTRUCCIÓN MULTI-CURSO Y MULTIGRADO (CRÍTICO)]:
+Este es un TALLER MULTIGRADO donde participan estudiantes de múltiples niveles: [${cursosStr}].
+Tu misión es diseñar una propuesta de unidades que sea pedagógicamente factible para un aula multigrado:
+1. Identifica y prioriza "OAs Transversales" que sean comunes a los niveles participantes para integrarlos en las mismas unidades.
+2. Si un OA es específico de un nivel, indícalo claramente (ej: "OA 1 de 6to Básico" y "OA 4 de 5to Básico").
+3. Diseña la progresión anual buscando la integración curricular, permitiendo que todos los niveles trabajen sobre un mismo eje temático con distinta profundidad.
+`;
+    }
+    return '';
+})() : ''}
+
 === CONFIGURACIÓN DE TU AÑO ESCOLAR ===
 ${configStr}
 =======================================
@@ -174,6 +204,21 @@ Tarea: Tomar la Estructura Base proporcionada y convertirla en el Programa Anual
 Curso: "${formData.curso}"
 Asignatura: "${formData.asignatura}"
 ${estimatedHours > 0 ? `Contexto Temporal Anual: Aproximadamente ${estimatedHours} horas pedagógicas disponibles en todo el año.` : ''}
+
+${(formData.curso === 'Taller' || formData.curso === 'Multi-curso') ? (() => {
+    const activeSchedule = schedules?.[0]?.scheduleData;
+    const firstSubject = Object.values(activeSchedule?.[formData.curso] || {})[0];
+    const firstBlock = Array.isArray(firstSubject) ? firstSubject[0] : null;
+    if (firstBlock && firstBlock.cursos) {
+        const cursosStr = Array.isArray(firstBlock.cursos) ? firstBlock.cursos.join(', ') : firstBlock.cursos;
+        return `
+CONTEXTO MULTI-CURSO (OBLIGATORIO):
+Este es un TALLER donde participan estudiantes de múltiples niveles: [${cursosStr}].
+TAREA PEDAGÓGICA ESPECIAL: Genera una planificación anual JSON que sea inclusiva y multinivel. Las unidades deben permitir el desarrollo simultáneo de estudiantes de diferentes etapas, fomentando la colaboración y asegurando que los indicadores de evaluación sean accesibles y pertinentes para la diversidad de niveles presentes.
+`;
+    }
+    return '';
+})() : ''}
 ${formData.contexto ? `Contexto/Instrucciones Específicas del Docente: "${formData.contexto}"` : ''}
 
 === ESTRUCTURA BASE (EXTRAÍDA PREVIAMENTE POR NOTEBOOKLM) ===
@@ -323,7 +368,21 @@ IMPORTANTE:
                                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Curso</label>
                                     <select value={formData.curso} onChange={e => setFormData(p => ({ ...p, curso: e.target.value, asignatura: '' }))} className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-white focus:border-indigo-500 outline-none transition-colors">
                                         <option value="">Selecciona Curso...</option>
-                                        {cursosDisponibles.map(c => <option key={c} value={c}>{c}</option>)}
+                                        {cursosDisponibles.map(c => {
+                                            let label = c;
+                                            if (c === 'Taller' || c === 'Multi-curso') {
+                                                const activeSchedule = schedules?.[0]?.scheduleData;
+                                                const firstSubject = Object.values(activeSchedule?.[c] || {})[0];
+                                                const firstBlock = Array.isArray(firstSubject) ? firstSubject[0] : null;
+                                                if (firstBlock && firstBlock.cursos) {
+                                                    const cursosStr = Array.isArray(firstBlock.cursos) 
+                                                        ? firstBlock.cursos.join(', ')
+                                                        : firstBlock.cursos;
+                                                    label = `Taller (${cursosStr})`;
+                                                }
+                                            }
+                                            return <option key={c} value={c}>{label}</option>;
+                                        })}
                                     </select>
                                 </div>
                                 <div className="space-y-2">

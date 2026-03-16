@@ -256,7 +256,9 @@ export const calculateClassSchedule = (data, existingClasses, schedules, selecte
                     color: assignedColor,
                     status: STATUS.ACTIVE,
                     ejecutada: true, // User Request: All classes default to "Realizada" (Green/Check)
-                    motivoSuspension: ''
+                    motivoSuspension: '',
+                    isMultiCourse: block.isMultiCourse || false,
+                    cursos: block.cursos || []
                 });
                 sesionesAgendadas++;
             }

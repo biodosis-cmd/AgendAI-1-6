@@ -229,6 +229,22 @@ Unidad N°: ${formData.numero}
 Título: "${formData.nombre}"
 Duración: ${formData.fechaInicio} al ${formData.fechaTermino}
 Contexto Temporal: ${stats.valid} clases reales totales (${stats.pedagogicalHours} horas pedagógicas totales para esta unidad).
+
+${(formData.curso === 'Taller' || formData.curso === 'Multi-curso') ? (() => {
+    const activeSchedule = schedules?.[0]?.scheduleData;
+    const firstSubject = Object.values(activeSchedule?.[formData.curso] || {})[0];
+    const firstBlock = Array.isArray(firstSubject) ? firstSubject[0] : null;
+    if (firstBlock && firstBlock.cursos) {
+        const cursosStr = Array.isArray(firstBlock.cursos) ? firstBlock.cursos.join(', ') : firstBlock.cursos;
+        return `
+CONTEXTO MULTI-CURSO (OBLIGATORIO):
+Este es un TALLER donde participan estudiantes de múltiples niveles: [${cursosStr}].
+TAREA PEDAGÓGICA ESPECIAL: Diseña una secuencia de unidad inclusiva y multinivel. Los objetivos y actividades deben permitir a todos los estudiantes (de los diferentes niveles mencionados) participar y progresar simultáneamente, fomentando la colaboración entre niveles y adaptando el rigor pedagógico a la diversidad del grupo.
+`;
+    }
+    return '';
+})() : ''}
+
 ${formData.objetivos ? `Contexto Adicional: "${formData.objetivos}"` : ''}
 
 MARCO DE HABILIDADES DEL SIGLO XXI (OBLIGATORIO):
@@ -523,7 +539,21 @@ IMPORTANTE: Revisa tu respuesta paso a paso. Asegúrate de que no haya comas al 
                                 <div className="grid grid-cols-2 gap-2">
                                     <select value={formData.curso} onChange={e => setFormData(p => ({ ...p, curso: e.target.value, asignatura: '' }))} className="bg-slate-800 border-slate-700 rounded-lg p-2 text-sm text-white focus:ring-indigo-500">
                                         <option value="">Curso...</option>
-                                        {cursosDisponibles.map(c => <option key={c} value={c}>{c}</option>)}
+                                        {cursosDisponibles.map(c => {
+                                            let label = c;
+                                            if (c === 'Taller' || c === 'Multi-curso') {
+                                                const activeSchedule = schedules?.[0]?.scheduleData;
+                                                const firstSubject = Object.values(activeSchedule?.[c] || {})[0];
+                                                const firstBlock = Array.isArray(firstSubject) ? firstSubject[0] : null;
+                                                if (firstBlock && firstBlock.cursos) {
+                                                    const cursosStr = Array.isArray(firstBlock.cursos) 
+                                                        ? firstBlock.cursos.join(', ')
+                                                        : firstBlock.cursos;
+                                                    label = `Taller (${cursosStr})`;
+                                                }
+                                            }
+                                            return <option key={c} value={c}>{label}</option>;
+                                        })}
                                     </select>
                                     <select value={formData.asignatura} onChange={e => setFormData(p => ({ ...p, asignatura: e.target.value }))} disabled={!formData.curso} className="bg-slate-800 border-slate-700 rounded-lg p-2 text-sm text-white focus:ring-indigo-500">
                                         <option value="">Asignatura...</option>

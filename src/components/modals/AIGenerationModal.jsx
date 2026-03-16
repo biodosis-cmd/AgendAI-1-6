@@ -475,6 +475,20 @@ INFORMACIÓN DE LA SOLICITUD:
 - Cantidad de Clases: ${formData.cantidad}
 - Duración por clase: ${inferredDuration} minutos.
 
+${(formData.curso === 'Taller' || formData.curso === 'Multi-curso') ? (() => {
+    const firstSubject = Object.values(activeSchedule?.scheduleData?.[formData.curso] || {})[0];
+    const firstBlock = Array.isArray(firstSubject) ? firstSubject[0] : null;
+    if (firstBlock && firstBlock.cursos) {
+        const cursosStr = Array.isArray(firstBlock.cursos) ? firstBlock.cursos.join(', ') : firstBlock.cursos;
+        return `
+CONTEXTO MULTI-CURSO (OBLIGATORIO):
+Este es un TALLER donde participan estudiantes de múltiples niveles: [${cursosStr}].
+TAREA PEDAGÓGICA ESPECIAL: Diseña actividades inclusivas y multinivel que permitan a todos los estudiantes (de los diferentes cursos mencionados) participar y desarrollarse según su etapa. Fomenta la colaboración entre niveles y asegúrate de que los objetivos de aprendizaje sean accesibles para todos los participantes simultáneamente.
+`;
+    }
+    return '';
+})() : ''}
+
 ${contextString}
 
 CONTEXTO Y REQUERIMIENTOS ESPECÍFICOS DEL DOCENTE (Características de estudiantes, materiales, enfoque, etc.):
@@ -652,7 +666,21 @@ IMPORTANTE: Revisa tu respuesta paso a paso. Asegúrate de que no haya comas al 
                                     disabled={isLockedMode}
                                 >
                                     <option value="">Curso</option>
-                                    {cursosDisponibles.map(c => <option key={c} value={c}>{c}</option>)}
+                                    {cursosDisponibles.map(c => {
+                                        let label = c;
+                                        // Specific label for "Taller" or "Multi-curso" to show participating courses
+                                        if (c === 'Taller' || c === 'Multi-curso') {
+                                            const firstSubject = Object.values(activeSchedule.scheduleData[c] || {})[0];
+                                            const firstBlock = Array.isArray(firstSubject) ? firstSubject[0] : null;
+                                            if (firstBlock && firstBlock.cursos) {
+                                                const cursosStr = Array.isArray(firstBlock.cursos) 
+                                                    ? firstBlock.cursos.join(', ')
+                                                    : firstBlock.cursos;
+                                                label = `Taller (${cursosStr})`;
+                                            }
+                                        }
+                                        return <option key={c} value={c}>{label}</option>;
+                                    })}
                                 </select>
 
                                 <select

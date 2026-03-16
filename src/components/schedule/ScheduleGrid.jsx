@@ -1,6 +1,6 @@
-import React from 'react';
 import { X } from 'lucide-react';
-import { DIAS_SEMANA, CURSO_COLORES } from '@/constants';
+import { DIAS_SEMANA } from '@/constants';
+import { formatCourseForCard, getColorForCourse } from '@/utils/courseUtils';
 
 const ScheduleGrid = ({
     startHour = 8,
@@ -13,25 +13,6 @@ const ScheduleGrid = ({
 
     // Calculate total height
     const totalHeight = (endHour - startHour) * 60 * pixelsPerMinute + 80;
-
-    // Helper: Fuzzy Color Lookup for Course Letters (e.g., "7mo Básico A")
-    const getColorForCourse = (courseName) => {
-        if (!courseName) return 'bg-slate-600';
-
-        // 1. Try exact match
-        if (CURSO_COLORES[courseName]) return CURSO_COLORES[courseName];
-
-        // 2. Try stripping suffix (e.g. "7mo Básico A" -> "7mo Básico", "NT1 A" -> "NT1")
-        // Assumes suffix is " X" (space + letter)
-        const parts = courseName.split(' ');
-        if (parts.length >= 2 && parts[parts.length - 1].length === 1) {
-            // Reconstruct without last part
-            const baseName = parts.slice(0, -1).join(' ');
-            if (CURSO_COLORES[baseName]) return CURSO_COLORES[baseName];
-        }
-
-        return 'bg-slate-600';
-    };
 
     return (
         <div className="min-w-[800px] relative pb-10" style={{ height: `${totalHeight}px` }}>
@@ -76,124 +57,83 @@ const ScheduleGrid = ({
 
                             {/* Blocks for this Day */}
                             {flatBlocks.filter(b => b.dia === index + 1).map(block => {
-                                const blockColor = getColorForCourse(block.curso);
+                                const isMultiCourse = block.isMultiCourse === true; // Assuming block might have this or we infer from course name
+                                const sidebarColor = getColorForCourse(block.curso, isMultiCourse);
+                                const duration = block.duration || 90;
+                                const isReallyShort = duration <= 45;
+
+                                const { main: mainText, sub: subText } = formatCourseForCard(block.curso);
+                                const showMainTextSize = mainText.length <= 3 && !isMultiCourse ? 'text-xl' : 'text-sm';
+
                                 return (
                                     <div
                                         key={block.id}
-                                        className={`absolute inset-x-[1px] rounded-lg shadow-sm border-0 overflow-hidden transition-all group/block hover:z-10 hover:shadow-xl hover:scale-[1.02] cursor-pointer ${blockColor} bg-opacity-85 saturate-[.85] backdrop-blur-sm bg-gradient-to-b from-white/10 to-transparent`}
+                                        className={`absolute inset-x-[1px] rounded-lg shadow-sm overflow-hidden ${isMultiCourse ? 'bg-[#1c1c2b]/95' : 'bg-slate-800/90'} hover:bg-slate-700/90 transition-colors group z-20 cursor-pointer`}
                                         style={{
                                             top: block.top,
                                             height: block.height
                                         }}
                                     >
-                                        {/* New Sidebar Design Structure */}
                                         <div className="flex h-full w-full">
 
-                                            {/* LEFT SIDEBAR: Course Indicator */}
-                                            <div className={`
-                                            h-full flex flex-col items-center justify-center relative overflow-hidden flex-shrink-0
-                                            ${blockColor}
-                                            ${block.curso.match(/ciclo/i) ? 'w-12' : 'w-10'}
-                                        `}>
-                                                {/* Subtle sheen */}
-                                                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-black/10 pointer-events-none"></div>
-
-                                                {/* Typography Logic */}
-                                                {(() => {
-                                                    const courseName = block.curso || '';
-                                                    let number = courseName.split(' ')[0] || '';
-                                                    let label = '';
-                                                    let suffix = '';
-
-                                                    // Render Logic: Parse Name
-                                                    const parts = courseName.split(' ');
-                                                    if (parts.length >= 2 && parts[parts.length - 1].length === 1) suffix = parts[parts.length - 1];
-
-                                                    if (courseName.match(/básico/i)) {
-                                                        number = number.replace(/\D/g, '');
-                                                        label = 'Básico';
-                                                    } else if (courseName.match(/medio/i)) {
-                                                        number = number.replace(/\D/g, '');
-                                                        label = 'Medio';
-                                                    } else if (courseName.match(/ciclo/i)) {
-                                                        number = courseName.replace(/ciclo/i, '').trim();
-                                                        label = 'CICLO';
-                                                    }
-                                                    // Removed: if (suffix) label = `${label} ${suffix}`;
-
-                                                    // RENDER LOGIC: Split based on Course Type
-                                                    const isNT = number.startsWith('NT');
-                                                    if (isNT) {
-                                                        // NT1/NT2: Vertical Stack (Number on top, Letter below)
-                                                        return (
-                                                            <div className="flex flex-col items-center justify-center leading-none">
-                                                                <span className="font-black text-white text-xs drop-shadow-md z-10 flex items-center justify-center">
-                                                                    {number}
-                                                                </span>
-                                                                {suffix && (
-                                                                    <span className="font-bold text-white/90 uppercase tracking-tighter drop-shadow-md z-10 text-[10px] mt-0.5">
-                                                                        {suffix}
-                                                                    </span>
-                                                                )}
-                                                                {label && (
-                                                                    <span className="text-[6px] text-white/90 font-bold uppercase tracking-tighter mt-0.5 text-center leading-tight px-0.5 z-10">
-                                                                        {label}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    } else {
-                                                        // Standard Courses (1ro Básico, etc): Horizontal (Number + Letter side-by-side)
-                                                        return (
-                                                            <div className="flex flex-col items-center justify-center leading-none w-full">
-                                                                <span className={`font-black text-white drop-shadow-md z-10 flex items-center justify-center leading-none ${label === 'CICLO' ? 'text-lg tracking-tighter' : 'text-xl'}`}>
-                                                                    {number}
-                                                                    {suffix && <span className="ml-0.5 text-lg opacity-90">{suffix}</span>}
-                                                                </span>
-                                                                {label && (
-                                                                    <span className={`text-white/90 font-bold uppercase mt-0.5 text-center leading-none px-0.5 z-10 block w-full ${label === 'CICLO' ? 'text-[9px] tracking-widest opacity-100' : 'text-[6px] tracking-tighter'}`}>
-                                                                        {label}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    }
-                                                })()}
-                                            </div>
-
-                                            {/* RIGHT CONTENT: Subject & Details */}
-                                            <div className="flex-grow p-1.5 relative flex flex-col justify-center min-w-0 bg-slate-800/90 backdrop-blur-sm">
-
-                                                {/* Time Badge */}
-                                                <div className="flex items-center gap-1 mb-0.5 opacity-90">
-                                                    <span className="text-[9px] font-mono font-bold text-slate-400">
-                                                        {block.hora} <span className="text-slate-600 font-normal">/ {block.duration}m</span>
-                                                    </span>
-                                                </div>
-
-                                                {/* Subject */}
-                                                <div className="flex items-center">
-                                                    <h3
-                                                        className="font-bold text-[10px] leading-tight truncate text-slate-200 w-full"
-                                                        title={block.asignatura}
-                                                    >
-                                                        {block.asignatura}
-                                                    </h3>
-                                                </div>
-
-                                                {/* Delete Button (Admin Only) */}
-                                                {canEdit && (
-                                                    <div className="absolute top-0.5 right-0.5 flex z-20">
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); onRemoveBlock(block); }}
-                                                            className="p-0.5 rounded hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition-colors"
-                                                            title="Eliminar bloque"
-                                                        >
-                                                            <X size={12} />
-                                                        </button>
-                                                    </div>
+                                            {/* SIDEBAR */}
+                                            <div className={`h-full w-14 min-w-[3.5rem] flex flex-col items-center justify-center ${sidebarColor} text-white`}>
+                                                {isMultiCourse ? (
+                                                    <>
+                                                        <span className="text-sm font-bold leading-none text-center px-0.5">MLT</span>
+                                                        <span className="text-[8px] uppercase font-bold mt-0.5 opacity-90 leading-none">Taller</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span className={`${showMainTextSize} font-bold leading-none text-center px-0.5`}>
+                                                            {mainText}
+                                                        </span>
+                                                        <span className="text-[9px] uppercase font-medium mt-0.5 opacity-90">
+                                                            {subText}
+                                                        </span>
+                                                    </>
                                                 )}
                                             </div>
+
+                                            {/* CONTENT */}
+                                            <div className={`
+                                                flex-grow relative flex flex-col justify-center min-w-0 overflow-hidden
+                                                ${isReallyShort ? 'p-1' : 'p-2'}
+                                            `}>
+                                                <span className={`
+                                                    font-mono text-slate-400 
+                                                    ${isReallyShort ? 'text-[9px] mb-0' : 'text-[10px] mb-0.5'}
+                                                `}>
+                                                    {block.hora} / {duration}m
+                                                </span>
+                                                <h3 className={`
+                                                    font-bold text-slate-200 leading-none truncate break-words whitespace-normal w-full overflow-hidden
+                                                    ${isReallyShort ? 'text-[10px] max-h-[2.4em]' : 'text-xs line-clamp-2'}
+                                                `} title={block.asignatura}>
+                                                    {block.asignatura}
+                                                </h3>
+                                                {isMultiCourse && block.cursos && (
+                                                    <p className="text-[8px] text-indigo-300 font-medium mt-1 truncate leading-tight">
+                                                        {Array.isArray(block.cursos) 
+                                                            ? block.cursos.map(c => c.split(' ')[0]).join(', ')
+                                                            : String(block.cursos).split(',').map(c => c.trim().split(' ')[0]).join(', ')
+                                                        }
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            {/* Actions */}
+                                            {canEdit && (
+                                                <div className="absolute top-1 right-1 flex z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); onRemoveBlock(block); }}
+                                                        className="p-0.5 rounded hover:bg-black/20 text-slate-500 hover:text-red-400 transition-colors"
+                                                        title="Eliminar bloque"
+                                                    >
+                                                        <X size={12} />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 );

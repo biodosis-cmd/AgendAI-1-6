@@ -97,6 +97,7 @@ export const CURSO_COLORES = {
     '4to Medio': 'bg-violet-700',
     '1er Ciclo': 'bg-slate-500',
     '2do Ciclo': 'bg-slate-500',
+    'Multi-curso': 'bg-indigo-600',
 };
 
 export const CURSO_HEX_COLORES = {

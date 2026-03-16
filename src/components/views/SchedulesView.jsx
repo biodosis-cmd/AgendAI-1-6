@@ -29,6 +29,7 @@ const SchedulesView = ({ schedules = [], onEdit, userId, onRefresh }) => {
                         const height = (block.duration || 90) * PIXELS_PER_MINUTE;
 
                         blocks.push({
+                            ...block,
                             id: `${courseName}-${subjectName}-${block.dia}-${idx}-${Date.now()}`,
                             dia: block.dia,
                             hora: block.hora,

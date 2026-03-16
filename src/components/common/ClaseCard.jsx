@@ -1,62 +1,18 @@
-import React from 'react';
-import { Trash2, X } from 'lucide-react';
-import { CURSO_COLORES, CURSO_HEX_COLORES } from '@/constants';
+import { Trash2 } from 'lucide-react';
+import { formatCourseForCard, getColorForCourse } from '@/utils/courseUtils';
 
 const ClaseCard = ({ clase, onEdit, onDelete, style, isStatic = false, compact = false, isShort = false, isMicro = false }) => {
-    // Premium Gradient Mapping for Sidebar
-    const getColorForCourse = (courseName) => {
-        if (!courseName) return 'bg-slate-600';
-
-        // 1. Try exact match
-        if (CURSO_COLORES[courseName]) return CURSO_COLORES[courseName];
-
-        // 2. Try stripping suffix (e.g. "7mo Básico A" -> "7mo Básico")
-        // Assumes suffix is " X" (space + letter)
-        const parts = courseName.split(' ');
-        if (parts.length >= 2 && parts[parts.length - 1].length === 1) {
-            // Reconstruct without last part
-            const baseName = parts.slice(0, -1).join(' ');
-            if (CURSO_COLORES[baseName]) return CURSO_COLORES[baseName];
-        }
-
-        return 'bg-slate-600';
-    };
-
-    const sidebarColor = getColorForCourse(clase.curso);
+    const isMultiCourse = clase.isMultiCourse === true;
+    const sidebarColor = getColorForCourse(clase.curso, isMultiCourse);
     const isExecuted = clase.ejecutada !== false;
     const positionClass = isStatic ? 'relative w-full mb-1' : 'absolute w-[98%] left-[1%]';
 
-    // Helper to parse course name for display (Number + Label)
-    const parseCourse = (courseName) => {
-        if (!courseName) return { number: '', suffix: '', label: '' };
+    // Logic for short blocks (<= 45 min)
+    const duration = clase.duracion || 90;
+    const isReallyShort = duration <= 45;
 
-        let number = courseName.split(' ')[0];
-        let label = '';
-        let suffix = ''; // For A, B, C
-
-        // Extract suffix if exists (last part if single letter?)
-        const parts = courseName.split(' ');
-        if (parts.length >= 2 && parts[parts.length - 1].length === 1) {
-            suffix = parts[parts.length - 1];
-        }
-
-        if (courseName.match(/básico/i)) {
-            number = number.replace(/\D/g, ''); // Extract just digits
-            label = 'Básico';
-        } else if (courseName.match(/medio/i)) {
-            number = number.replace(/\D/g, '');
-            label = 'Medio';
-        } else if (courseName.match(/ciclo/i)) {
-            number = courseName.replace(/ciclo/i, '').trim(); // Gets "1er" or "2do"
-            label = 'CICLO';
-        } else {
-            // NT1, NT2 casing
-        }
-
-        // if (suffix) label = `${label} ${suffix}`; // Removed: suffix now goes with number
-
-        return { number, suffix, label };
-    };
+    const { main: mainText, sub: subText } = formatCourseForCard(clase.curso);
+    const showMainTextSize = mainText.length <= 3 && !isMultiCourse ? 'text-xl' : 'text-sm';
 
     return (
         <div
@@ -70,7 +26,7 @@ const ClaseCard = ({ clase, onEdit, onDelete, style, isStatic = false, compact =
                 overflow-hidden group 
                 ${!isExecuted ? 'opacity-60 grayscale' : ''} 
                 border-0
-                ${sidebarColor} bg-opacity-85 saturate-[.85] backdrop-blur-sm bg-gradient-to-b from-white/10 to-transparent
+                ${isMultiCourse ? 'bg-[#1c1c2b]/95' : 'bg-slate-800/90'} transition-colors
                 z-10 hover:z-20
                 ${isMicro ? 'h-auto min-h-[26px]' : 'h-full'}
             `}
@@ -78,105 +34,67 @@ const ClaseCard = ({ clase, onEdit, onDelete, style, isStatic = false, compact =
             <div className="flex h-full w-full">
                 {/* LEFT SIDEBAR: Course Indicator */}
                 <div className={`
-                    h-full flex flex-col items-center justify-center relative overflow-hidden flex-shrink-0
-                    ${sidebarColor}
-                    ${isMicro ? 'w-8' : (isShort ? 'w-10' : (clase.curso.match(/ciclo/i) ? 'w-12' : 'w-10'))}
+                    h-full w-14 min-w-[3.5rem] flex flex-col items-center justify-center flex-shrink-0
+                    ${sidebarColor} text-white
                 `}>
-                    {/* Subtle sheen on sidebar */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-black/10 pointer-events-none"></div>
-
-                    {/* Course Name Logic */}
-                    {(() => {
-                        const { number, suffix, label } = parseCourse(clase.curso);
-                        const isNT = number.startsWith('NT');
-
-                        if (isNT) {
-                            // NT1/NT2: Vertical Stack
-                            return (
-                                <div className="flex flex-col items-center justify-center leading-none">
-                                    <span className={`
-                                        font-black text-white drop-shadow-md z-10 flex items-center justify-center
-                                        ${isMicro ? 'text-[9px]' : 'text-xs'}
-                                    `}>
-                                        {number}
-                                    </span>
-                                    {suffix && (
-                                        <span className={`
-                                            font-bold text-white/90 uppercase tracking-tighter drop-shadow-md z-10 
-                                            ${isMicro ? 'text-[8px] mt-px' : 'text-[10px] mt-0.5'}
-                                        `}>
-                                            {suffix}
-                                        </span>
-                                    )}
-                                    {!isMicro && label && (
-                                        <span className="text-[6px] text-white/90 font-bold uppercase tracking-tighter mt-0.5 text-center leading-tight px-0.5 z-10">
-                                            {label}
-                                        </span>
-                                    )}
-                                </div>
-                            );
-                        } else {
-                            // Standard: Horizontal
-                            return (
-                                <div className="flex flex-col items-center justify-center leading-none">
-                                    <span className={`
-                                        font-black text-white drop-shadow-md z-10 leading-none flex items-center justify-center
-                                        ${isMicro ? 'text-[9px]' : (label.includes('CICLO') ? 'text-lg tracking-tighter' : 'text-xl')}
-                                    `}>
-                                        {number}<span className={isNT ? "ml-0.5" : "ml-px"}>{suffix}</span>
-                                    </span>
-                                    {!isMicro && label && (
-                                        <span className={`
-                                            text-white/90 font-bold uppercase mt-0.5 text-center leading-none px-0.5 z-10 block w-full
-                                            ${label.includes('CICLO') ? 'text-[9px] tracking-widest opacity-100' : 'text-[9px] tracking-tighter'}
-                                        `}>
-                                            {label}
-                                        </span>
-                                    )}
-                                </div>
-                            );
-                        }
-                    })()}
+                    {isMultiCourse ? (
+                        <>
+                            <span className="text-sm font-bold leading-none text-center px-0.5">MLT</span>
+                            <span className="text-[8px] uppercase font-bold mt-0.5 opacity-90 leading-none">Taller</span>
+                        </>
+                    ) : (
+                        <>
+                            <span className={`${showMainTextSize} font-bold leading-none text-center px-0.5`}>
+                                {mainText}
+                            </span>
+                            <span className="text-[9px] uppercase font-medium mt-0.5 opacity-90">
+                                {subText}
+                            </span>
+                        </>
+                    )}
                 </div>
 
                 {/* RIGHT CONTENT: Subject & Details */}
-                <div className={`flex-grow relative flex flex-col justify-center min-w-0 bg-slate-800/90 backdrop-blur-sm ${isMicro ? 'p-1' : 'p-1.5'}`}>
+                <div className={`
+                    flex-grow relative flex flex-col justify-center min-w-0 overflow-hidden
+                    ${isReallyShort ? 'p-1' : 'p-2'}
+                `}>
+                    {/* Time */}
+                    <span className={`
+                        font-mono text-slate-400 
+                        ${isReallyShort ? 'text-[9px] mb-0' : 'text-[10px] mb-0.5'}
+                    `}>
+                        {new Date(clase.fecha).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false })} / {duration}m
+                    </span>
 
-                    {/* Upper Details: Time */}
-                    {!isMicro && (
-                        <div className="flex items-center gap-1 mb-0.5 opacity-90">
-                            <span className="text-[11px] font-mono font-bold text-slate-400">
-                                {new Date(clase.fecha).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false })}
-                                <span className="text-slate-600 font-normal ml-1">/ {clase.duracion || 90}m</span>
-                            </span>
-                        </div>
+                    {/* Subject */}
+                    <h3 className={`
+                        font-bold text-slate-200 leading-none truncate break-words whitespace-normal w-full overflow-hidden
+                        ${isReallyShort ? 'text-[10px] max-h-[2.4em]' : 'text-xs line-clamp-2'}
+                    `} title={clase.asignatura}>
+                        {clase.asignatura}
+                    </h3>
+
+                    {/* Multi-course courses list */}
+                    {isMultiCourse && clase.cursos && (
+                        <p className="text-[8px] text-indigo-300 font-medium mt-1 truncate leading-tight">
+                            {Array.isArray(clase.cursos) 
+                                ? clase.cursos.map(c => c.split(' ')[0]).join(', ')
+                                : String(clase.cursos).split(',').map(c => c.trim().split(' ')[0]).join(', ')
+                            }
+                        </p>
                     )}
+                </div>
 
-                    {/* Main Subject */}
-                    <div className="flex flex-col justify-center flex-grow min-w-0">
-                        <h3 className={`
-                            font-bold text-slate-200 leading-tight truncate
-                            ${isMicro ? 'text-[10px]' : 'text-[10px]'}
-                        `} title={clase.asignatura}>
-                            {clase.asignatura}
-                        </h3>
-                        {!isMicro && (
-                            <p className="text-[9px] text-slate-500 truncate mt-px">
-                                {isShort ? '' : 'Planificada'}
-                            </p>
-                        )}
-                    </div>
-
-                    {/* Footer: Actions */}
-                    <div className="absolute top-0.5 right-0.5 flex gap-1 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onDelete(clase); }}
-                            className="p-0.5 rounded hover:bg-black/20 text-slate-500 hover:text-red-400 transition-colors"
-                            title="Eliminar clase"
-                        >
-                            <Trash2 size={12} strokeWidth={2.5} />
-                        </button>
-                    </div>
+                {/* Actions */}
+                <div className="absolute top-1 right-1 flex gap-1 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onDelete(clase); }}
+                        className="p-0.5 rounded hover:bg-black/20 text-slate-500 hover:text-red-400 transition-colors"
+                        title="Eliminar clase"
+                    >
+                        <Trash2 size={12} strokeWidth={2.5} />
+                    </button>
                 </div>
             </div>
 
