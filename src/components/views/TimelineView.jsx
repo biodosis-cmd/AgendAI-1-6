@@ -20,7 +20,10 @@ const TimelineView = ({ units, onEditUnit, selectedYear }) => {
 
     const rows = useMemo(() => {
         const grouped = units.reduce((acc, unit) => {
-            const key = `${unit.curso} - ${unit.asignatura}`;
+            // Include levels in the key to separate workshop sub-groups
+            const levelsPart = unit.levels ? ` (${unit.levels})` : '';
+            const key = `${unit.curso} - ${unit.asignatura}${levelsPart}`;
+            
             if (!acc[key]) acc[key] = { id: key, items: [] };
             acc[key].items.push(unit);
             return acc;
