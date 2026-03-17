@@ -113,6 +113,16 @@ export const generateReportListWord = async (clases, teacherName, year, filters,
     clases.forEach(c => {
         const executed = c.ejecutada !== false;
 
+        // Find unit logic
+        const unit = units.find(u => {
+            const claseDate = new Date(c.fecha);
+            const startDate = new Date(u.fechaInicio + 'T00:00:00');
+            const endDate = new Date(u.fechaTermino + 'T23:59:59');
+            return c.curso === u.curso && c.asignatura === u.asignatura && claseDate >= startDate && claseDate <= endDate;
+        });
+
+        const cursoTitle = unit && unit.levels ? `${c.curso} [${unit.levels}]` : c.curso;
+
         // --- Card Header (Background Color) ---
         // Hex to RRGGBB for docx (remove #)
 
@@ -142,7 +152,7 @@ export const generateReportListWord = async (clases, teacherName, year, filters,
                     children: [
                         new TableCell({
                             children: [
-                                createTextParagraph(`${c.curso} - ${c.asignatura}`, { color: "FFFFFF", bold: true, size: 24 }),
+                                createTextParagraph(`${cursoTitle} - ${c.asignatura}`, { color: "FFFFFF", bold: true, size: 24 }),
                                 createTextParagraph(`${new Date(c.fecha).toLocaleString('es-CL', { dateStyle: 'full', timeStyle: 'short' })} / ${Math.round((c.duracion || 90) / 45)} hrs ped. (Semana ${c.semana})`, { color: "FFFFFF", size: 20 })
                             ],
                             shading: { fill: hexColor, type: ShadingType.CLEAR }, // Solid background
@@ -164,16 +174,6 @@ export const generateReportListWord = async (clases, teacherName, year, filters,
 
         if (executed) {
             // Unit Info if exists
-            // Find unit logic duplicated here, ideally passed in or refactored shared logic
-            // We need to implement findUnitForClass logic or pass it processed. 
-            // For simplicity, let's assume 'units' is passed and we search it here like in the View.
-            const unit = units.find(u => {
-                const claseDate = new Date(c.fecha);
-                const startDate = new Date(u.fechaInicio + 'T00:00:00');
-                const endDate = new Date(u.fechaTermino + 'T23:59:59');
-                return c.curso === u.curso && c.asignatura === u.asignatura && claseDate >= startDate && claseDate <= endDate;
-            });
-
             if (unit) {
                 const oaCodes = extractOACodes(unit.detalles).join(' - ');
                 const unitTitle = unit.numero ? `Unidad ${unit.numero}: ${unit.nombre}` : unit.nombre;
@@ -344,7 +344,8 @@ export const generateReportTableWord = async (clases, teacherName, year, filters
             return c.curso === u.curso && c.asignatura === u.asignatura && claseDate >= startDate && claseDate <= endDate;
         });
 
-        let cell2Content = [createTextParagraph(c.curso, { bold: true }), createTextParagraph(c.asignatura)];
+        const cursoLabel = unit && unit.levels ? `${c.curso} [${unit.levels}]` : c.curso;
+        let cell2Content = [createTextParagraph(cursoLabel, { bold: true }), createTextParagraph(c.asignatura)];
         if (unit && executed) {
             cell2Content.push(createTextParagraph(""));
             cell2Content.push(createTextParagraph(unit.numero ? `Unidad ${unit.numero}: ${unit.nombre}` : unit.nombre, { italics: true, size: 18 }));

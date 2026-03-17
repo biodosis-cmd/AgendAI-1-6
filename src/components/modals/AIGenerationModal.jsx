@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getStartDateOfWeek, getWeekNumber } from '@/utils/dateUtils';
 import { getSchoolYearConfig } from '@/services/db';
 import { Sparkles, Copy, Download, X, ClipboardPaste, ArrowRight, Check, ChevronLeft, ChevronRight, AlertTriangle, Calendar } from 'lucide-react';
@@ -8,32 +8,27 @@ const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, 
     const activeSchedule = schedules && schedules.length > 0 ? schedules[0] : null;
 
     // Derived lists for Dropdowns directly from the Single Schedule
-    const cursosDisponibles = React.useMemo(() => {
-        if (!activeSchedule || !activeSchedule.scheduleData) return [];
-
-        const AVAILABLE_COURSES = Object.keys(activeSchedule.scheduleData);
-
-        // Custom Sort Order
-        const sortOrder = [
-            "NT1", "NT2",
-            "1ro Básico", "2do Básico", "3ro Básico", "4to Básico", "5to Básico", "6to Básico", "7mo Básico", "8vo Básico",
-            "1ro Medio", "2do Medio", "3ro Medio", "4to Medio"
+    const cursosDisponibles = useMemo(() => {
+        if (!schedules || schedules.length === 0) return [];
+        const activeSchedule = schedules[0].scheduleData;
+        if (!activeSchedule) return [];
+        
+        const courses = Object.keys(activeSchedule);
+        const COURSE_ORDER = [
+            'NT1', 'NT2', '1ro Básico', '2do Básico', '3ro Básico', '4to Básico',
+            '5to Básico', '6to Básico', '7mo Básico', '8vo Básico',
+            '1ro Medio', '2do Medio', '3ro Medio', '4to Medio'
         ];
 
-        return AVAILABLE_COURSES.sort((a, b) => {
-            const indexA = sortOrder.indexOf(a);
-            const indexB = sortOrder.indexOf(b);
-
-            // Handle cases where a course might not be in the list
-            if (indexA === -1 && indexB === -1) return a.localeCompare(b);
-            if (indexA === -1) return 1;
-            if (indexB === -1) return -1;
-
-            return indexA - indexB;
+        return courses.sort((a, b) => {
+            const ia = COURSE_ORDER.indexOf(a);
+            const ib = COURSE_ORDER.indexOf(b);
+            if (ia !== -1 && ib !== -1) return ia - ib;
+            return a.localeCompare(b);
         });
-    }, [activeSchedule]);
+    }, [schedules]);
 
-    const [formData, setFormData] = useState({ curso: '', asignatura: '', cantidad: '5', prompt: '', duracion: '90' });
+    const [formData, setFormData] = useState({ curso: '', asignatura: '', cantidad: '5', prompt: '', duracion: '90', levels: '' });
     const [selectedUnitId, setSelectedUnitId] = useState(initialUnitId || ''); // Initialize with prop
     const [generatedPrompt, setGeneratedPrompt] = useState('');
     const [jsonResponse, setJsonResponse] = useState('');
@@ -42,6 +37,23 @@ const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, 
     const [isCopied, setIsCopied] = useState(false);
     const [schoolYearConfig, setSchoolYearConfig] = useState(null);
     const [customStartDate, setCustomStartDate] = useState(''); // NEW: Specific start date override
+
+    // Derived list of levels for the selected course/subject
+    const nivelesDisponibles = useMemo(() => {
+        if (!formData.curso || !formData.asignatura || !activeSchedule?.scheduleData) return [];
+        const blocks = activeSchedule.scheduleData[formData.curso]?.[formData.asignatura] || [];
+        
+        const levelsSet = new Set();
+        blocks.forEach(b => {
+            if (b.cursos && Array.isArray(b.cursos) && b.cursos.length > 0) {
+                levelsSet.add(b.cursos.join(', '));
+            } else if (b.cursos && typeof b.cursos === 'string') {
+                levelsSet.add(b.cursos);
+            }
+        });
+        
+        return Array.from(levelsSet).sort();
+    }, [formData.curso, formData.asignatura, activeSchedule]);
 
     // Local Date State for Week Selection
     const [localYear, setLocalYear] = useState(selectedYear);
@@ -95,9 +107,8 @@ const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, 
                         ...prev,
                         curso: u.curso,
                         asignatura: u.asignatura,
-                        // Optional: Calculate quantity based on weeks? 
-                        // For now just pre-fill context.
-                        cantidad: '4' // Default or calculated? Let's leave it editable but maybe hint?
+                        levels: u.levels || '',
+                        cantidad: '4' 
                     }));
                 }
             }
@@ -171,8 +182,12 @@ const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, 
     // 1. Get all compatible units for this Course/Subject
     const availableUnits = React.useMemo(() => {
         if (!formData.curso || !formData.asignatura || !units) return [];
-        return units.filter(u => u.curso === formData.curso && u.asignatura === formData.asignatura);
-    }, [formData.curso, formData.asignatura, units]);
+        return units.filter(u => 
+            u.curso === formData.curso && 
+            u.asignatura === formData.asignatura &&
+            (!formData.levels || u.levels === formData.levels)
+        );
+    }, [formData.curso, formData.asignatura, formData.levels, units]);
 
     // 2. Identify the "Natural" unit for this date
     const naturalActiveUnit = React.useMemo(() => {
@@ -257,33 +272,45 @@ const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, 
     }, [availableUnits, localWeek, localYear]);
 
 
-    const asignaturasDisponibles = React.useMemo(() => {
-        if (!formData.curso || !activeSchedule || !activeSchedule.scheduleData) return [];
-        return Object.keys(activeSchedule.scheduleData[formData.curso] || {}).sort();
-    }, [formData.curso, activeSchedule]);
+    const asignaturasDisponibles = useMemo(() => {
+        if (!formData.curso || !schedules || schedules.length === 0) return [];
+        const activeSchedule = schedules[0].scheduleData;
+        if (!activeSchedule?.[formData.curso]) return [];
+        return Object.keys(activeSchedule[formData.curso]);
+    }, [formData.curso, schedules]);
 
     // Calculate available specific days for the selected course/subject in the current week
-    const availableStartDays = React.useMemo(() => {
-        if (!formData.curso || !formData.asignatura || isLockedMode || !activeSchedule || !activeSchedule.scheduleData) return [];
-        
-        const blocks = activeSchedule.scheduleData[formData.curso]?.[formData.asignatura] || [];
-        if (blocks.length === 0) return [];
+    const availableStartDays = useMemo(() => {
+        if (!formData.curso || !formData.asignatura || !schedules || schedules.length === 0) return [];
+        const activeSchedule = schedules?.[0]?.scheduleData || {};
+        const blocks = activeSchedule[formData.curso]?.[formData.asignatura];
+        if (!blocks || !Array.isArray(blocks)) return [];
 
         const weekStart = getStartDateOfWeek(localYear, localWeek);
         const days = [];
         const seenDays = new Set(); // Prevent duplicates if multiple blocks on same day
         
+        const dayMap = { 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Miercoles': 3, 'Jueves': 4, 'Viernes': 5, 'Sábado': 6, 'Domingo': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 0 };
+
+        // Option 4: Filter by levels if provided
+        let filteredBlocks = blocks;
+        if (formData.levels) {
+            filteredBlocks = blocks.filter(b => {
+                const bLevels = Array.isArray(b.cursos) ? b.cursos.join(', ') : b.cursos;
+                return bLevels === formData.levels;
+            });
+        }
+
         for (let i = 0; i < 7; i++) {
             const checkDate = new Date(weekStart);
             checkDate.setDate(checkDate.getDate() + i);
             const dayOfWeek = checkDate.getDay(); // 0 = Sun, 1 = Mon...
             
             // Check if there is a block on this day in the schedule
-            const hasClass = blocks.some(b => {
+            const hasClass = filteredBlocks.some(b => {
                  let bDay = b.day || b.dia; 
                  if (typeof bDay === 'string') {
-                     const map = { 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Miercoles': 3, 'Jueves': 4, 'Viernes': 5, 'Sábado': 6, 'Domingo': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 0 };
-                     if (map[bDay] !== undefined) bDay = map[bDay];
+                     if (dayMap[bDay] !== undefined) bDay = dayMap[bDay];
                  }
                  return bDay === dayOfWeek;
             });
@@ -304,7 +331,7 @@ const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, 
             }
         }
         return days;
-    }, [formData.curso, formData.asignatura, localYear, localWeek, activeSchedule, isLockedMode]);
+    }, [formData.curso, formData.asignatura, localYear, localWeek, schedules]);
 
     // Exact Quantity Logic (Counting real days in schedule - MIRRORED FROM UNITMODAL)
     useEffect(() => {
@@ -323,15 +350,24 @@ const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, 
                 // Helper to check schedule for a specific date
                 const hasClassOnDate = (date) => {
                     const dayOfWeek = date.getDay(); // 0=Sun
-                    const blocks = activeSchedule.scheduleData?.[formData.curso]?.[formData.asignatura] || [];
+                    let blocks = activeSchedule.scheduleData?.[formData.curso]?.[formData.asignatura] || [];
+
+                    const dayMap2 = { 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Miercoles': 3, 'Jueves': 4, 'Viernes': 5, 'Sábado': 6, 'Domingo': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 0 };
+
+                    // Filter by selected levels if applicable
+                    if (formData.levels) {
+                        blocks = blocks.filter(b => {
+                            const bLevels = Array.isArray(b.cursos) ? b.cursos.join(', ') : b.cursos;
+                            return bLevels === formData.levels;
+                        });
+                    }
 
                     // Check if any block matches this day
                     return blocks.some(b => {
                         let bDay = b.day || b.dia; // Handle format diffs
                         // Normalize bDay to 0-6
                         if (typeof bDay === 'string') {
-                            const map = { 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Miercoles': 3, 'Jueves': 4, 'Viernes': 5, 'Sábado': 6, 'Domingo': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 0 };
-                            if (map[bDay] !== undefined) bDay = map[bDay];
+                            if (dayMap2[bDay] !== undefined) bDay = dayMap2[bDay];
                         }
                         return bDay === dayOfWeek;
                     });
@@ -382,6 +418,7 @@ const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, 
         const targetUnit = units.find(u => u.id === newUnitId);
 
         if (targetUnit) {
+            setFormData(prev => ({ ...prev, levels: targetUnit.levels || '' }));
             const start = parseDateSafe(targetUnit.fechaInicio);
             if (start) {
                 start.setHours(12, 0, 0, 0);
@@ -419,6 +456,7 @@ const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, 
         let inferredDuration = 90;
         const relevantSchedule = schedules?.find(s => s.scheduleData?.[formData.curso]?.[formData.asignatura]);
         const bloquesAsignatura = relevantSchedule?.scheduleData?.[formData.curso]?.[formData.asignatura];
+        
         if (bloquesAsignatura && Array.isArray(bloquesAsignatura) && bloquesAsignatura.length > 0) {
             inferredDuration = parseInt(bloquesAsignatura[0].duration) || 90;
         }
@@ -431,6 +469,26 @@ const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, 
 
         let contextString = "";
         let mainInstruction = formData.prompt;
+
+        // Workshop level context
+        let workshopContext = "";
+        if (formData.curso.toLowerCase().includes('taller') || formData.curso.toLowerCase().includes('multi')) {
+            let foundLevels = formData.levels;
+            if (!foundLevels && activeSchedule?.scheduleData?.[formData.curso]) {
+                for (const blocks of Object.values(activeSchedule.scheduleData[formData.curso])) {
+                    if (Array.isArray(blocks)) {
+                        const blockWithCursos = blocks.find(b => b && b.cursos);
+                        if (blockWithCursos) {
+                            foundLevels = Array.isArray(blockWithCursos.cursos) ? blockWithCursos.cursos.join(', ') : blockWithCursos.cursos;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (foundLevels) {
+                workshopContext = `\n[INSTRUCCIÓN MULTIGRADO]: Este taller se imparte a estudiantes de: [${foundLevels}]. Diseña actividades inclusivas y multinivel.`;
+            }
+        }
 
         if (selectedUnit) {
             contextString = `
@@ -470,24 +528,10 @@ Reglas de Planificación:
 5. Contexto del Aula (IMPORTANTE): Si a continuación se describe un contexto específico (características de estudiantes, materiales, etc.), ESTO DEBE GUIAR toda la estrategia didáctica.
 
 INFORMACIÓN DE LA SOLICITUD:
-- Curso: "${formData.curso}"
+- Curso: "${formData.curso}"${workshopContext}
 - Asignatura: "${formData.asignatura}"
 - Cantidad de Clases: ${formData.cantidad}
 - Duración por clase: ${inferredDuration} minutos.
-
-${(formData.curso === 'Taller' || formData.curso === 'Multi-curso') ? (() => {
-    const firstSubject = Object.values(activeSchedule?.scheduleData?.[formData.curso] || {})[0];
-    const firstBlock = Array.isArray(firstSubject) ? firstSubject[0] : null;
-    if (firstBlock && firstBlock.cursos) {
-        const cursosStr = Array.isArray(firstBlock.cursos) ? firstBlock.cursos.join(', ') : firstBlock.cursos;
-        return `
-CONTEXTO MULTI-CURSO (OBLIGATORIO):
-Este es un TALLER donde participan estudiantes de múltiples niveles: [${cursosStr}].
-TAREA PEDAGÓGICA ESPECIAL: Diseña actividades inclusivas y multinivel que permitan a todos los estudiantes (de los diferentes cursos mencionados) participar y desarrollarse según su etapa. Fomenta la colaboración entre niveles y asegúrate de que los objetivos de aprendizaje sean accesibles para todos los participantes simultáneamente.
-`;
-    }
-    return '';
-})() : ''}
 
 ${contextString}
 
@@ -578,6 +622,7 @@ IMPORTANTE: Revisa tu respuesta paso a paso. Asegúrate de que no haya comas al 
             onClassesGenerated({
                 curso: formData.curso,
                 asignatura: formData.asignatura,
+                levels: formData.levels,
                 clases: parsedClasses,
                 year: localYear,
                 week: localWeek,
@@ -660,27 +705,15 @@ IMPORTANTE: Revisa tu respuesta paso a paso. Asegúrate de que no haya comas al 
                             {/* ... (Fields omitted, keep existing) */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <select
-                                    className={`w-full p-3 rounded-xl border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all ${isLockedMode ? 'bg-slate-800/50 text-slate-500 cursor-not-allowed' : 'bg-slate-800 text-white'}`}
                                     value={formData.curso}
-                                    onChange={(e) => setFormData({ ...formData, curso: e.target.value })}
+                                    onChange={(e) => setFormData({ ...formData, curso: e.target.value, asignatura: '' })}
+                                    className={`w-full p-3 rounded-xl border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all ${isLockedMode ? 'bg-slate-800/50 text-slate-500 cursor-not-allowed' : 'bg-slate-800 text-white'}`}
                                     disabled={isLockedMode}
                                 >
-                                    <option value="">Curso</option>
-                                    {cursosDisponibles.map(c => {
-                                        let label = c;
-                                        // Specific label for "Taller" or "Multi-curso" to show participating courses
-                                        if (c === 'Taller' || c === 'Multi-curso') {
-                                            const firstSubject = Object.values(activeSchedule.scheduleData[c] || {})[0];
-                                            const firstBlock = Array.isArray(firstSubject) ? firstSubject[0] : null;
-                                            if (firstBlock && firstBlock.cursos) {
-                                                const cursosStr = Array.isArray(firstBlock.cursos) 
-                                                    ? firstBlock.cursos.join(', ')
-                                                    : firstBlock.cursos;
-                                                label = `Taller (${cursosStr})`;
-                                            }
-                                        }
-                                        return <option key={c} value={c}>{label}</option>;
-                                    })}
+                                    <option value="">Curso...</option>
+                                    {cursosDisponibles.map(c => (
+                                        <option key={c} value={c}>{c}</option>
+                                    ))}
                                 </select>
 
                                 <select
@@ -692,6 +725,19 @@ IMPORTANTE: Revisa tu respuesta paso a paso. Asegúrate de que no haya comas al 
                                     <option value="">Asignatura</option>
                                     {asignaturasDisponibles.map(a => <option key={a} value={a}>{a}</option>)}
                                 </select>
+
+                                {nivelesDisponibles.length > 1 && !isLockedMode && (
+                                    <select
+                                        value={formData.levels}
+                                        onChange={(e) => setFormData({ ...formData, levels: e.target.value })}
+                                        className="w-full p-3 rounded-xl border border-indigo-500/50 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all bg-slate-800 text-white animate-pulse"
+                                    >
+                                        <option value="">Todos los niveles del taller...</option>
+                                        {nivelesDisponibles.map(n => (
+                                            <option key={n} value={n}>Solo niveles: {n}</option>
+                                        ))}
+                                    </select>
+                                )}
 
                                 <div className="relative">
                                     <input

@@ -78,10 +78,12 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
             const sanitize = (str) => `"${(str || '').replace(/"/g, '""')}"`;
             const ejecutada = c.ejecutada !== false;
 
+            const cursoName = unit && unit.levels ? `${c.curso} [${unit.levels}]` : c.curso;
+
             return [
                 fecha.toLocaleDateString('es-CL'),
                 fecha.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false }),
-                c.semana, c.curso, c.asignatura,
+                c.semana, cursoName, c.asignatura,
                 ejecutada ? 'Planificada' : 'No Realizada',
                 sanitize(c.motivoSuspension),
                 ejecutada ? sanitize(c.objetivo) : '',
@@ -142,10 +144,12 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
                     const hrsPedagogicas = Math.round((c.duracion || 90) / 45);
                     const labelHrs = hrsPedagogicas === 1 ? 'hr ped.' : 'hrs ped.';
 
+                    const cursoLabel = unit && unit.levels ? `${c.curso}\n[${unit.levels}]\n${c.asignatura}` : `${c.curso}\n${c.asignatura}`;
+
                     if (!ejecutada) {
                         return [
                             `${diaFecha}\n${hora}\n(${hrsPedagogicas} ${labelHrs})\nSemana ${c.semana}`,
-                            `${c.curso}\n${c.asignatura}`,
+                            cursoLabel,
                             'CLASE NO REALIZADA\nMotivo: ' + (c.motivoSuspension || ''),
                             ''
                         ];
@@ -169,7 +173,7 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
 
                     return [
                         `${diaFecha}\n${hora}\n(${hrsPedagogicas} ${labelHrs})\nSemana ${c.semana}`,
-                        `${c.curso}\n${c.asignatura}\n${unit ? `(U: ${unit.numero ? `${unit.numero}: ` : ''}${unit.nombre})` : ''}`,
+                        `${cursoLabel}\n${unit ? `(U: ${unit.numero ? `${unit.numero}: ` : ''}${unit.nombre})` : ''}`,
                         oa,
                         secuencia
                     ];

@@ -1,4 +1,4 @@
-export const generateAnnualPlanPDF = async (courseName, subjectName, teacherName = '', year, units) => {
+export const generateAnnualPlanPDF = async (courseName, subjectName, teacherName = '', year, units, levels = null) => {
     // Dynamic imports to match ReportView.jsx pattern
     const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
@@ -22,7 +22,7 @@ export const generateAnnualPlanPDF = async (courseName, subjectName, teacherName
         autoTable(doc, {
             startY: yPos,
             head: [['Asignatura', subjectName, 'Docente', teacherName]],
-            body: [['Curso', courseName, 'Año', year.toString()]],
+            body: [['Curso', levels ? `${courseName} [${levels}]` : courseName, 'Año', year.toString()]],
             theme: 'grid',
             styles: { fontSize: 10, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1 },
             headStyles: { fillColor: [235, 241, 222], textColor: [0, 0, 0], fontStyle: 'bold' }, // Light Greenish

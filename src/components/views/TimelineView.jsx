@@ -119,10 +119,10 @@ const TimelineView = ({ units, onEditUnit, selectedYear }) => {
                                             onClick={() => onEditUnit(unit)}
                                             style={{ ...style, backgroundColor: color }}
                                             className="absolute top-1 bottom-1 rounded-md shadow-sm border border-white/10 cursor-pointer hover:brightness-110 hover:shadow-md transition-all group/item z-10 flex items-center justify-center"
-                                            title={`${unit.nombre}: ${new Date(unit.fechaInicio).toLocaleDateString()} - ${new Date(unit.fechaTermino).toLocaleDateString()}`}
+                                            title={`${unit.nombre}${unit.levels ? ` (${unit.levels})` : ''}: ${new Date(unit.fechaInicio).toLocaleDateString()} - ${new Date(unit.fechaTermino).toLocaleDateString()}`}
                                         >
                                             <span className="text-[10px] font-bold text-white truncate px-1 shadow-black/50 drop-shadow-md select-none w-full text-center">
-                                                {unit.nombre}
+                                                {unit.nombre} {unit.levels ? `(${unit.levels})` : ''}
                                             </span>
                                         </div>
                                     );

@@ -3,6 +3,7 @@ import { db } from '@/services/db';
 import { X, Loader2, Sparkles, ArrowRight, ClipboardPaste, Brain, Check, Save, Layers } from 'lucide-react';
 
 const YearlyUnitGeneratorModal = ({ isOpen, onClose, userId, selectedYear, schedules, units = [] }) => {
+    const activeSchedule = schedules?.[0];
 
     // --- 1. DATA PREPARATION ---
     const { cursosDisponibles, subjectsMap } = useMemo(() => {
@@ -39,7 +40,8 @@ const YearlyUnitGeneratorModal = ({ isOpen, onClose, userId, selectedYear, sched
         curso: '',
         asignatura: '',
         estructuraBase: '', // Resultado del primer prompt (NotebookLM)
-        contexto: ''
+        contexto: '',
+        levels: ''
     });
 
     const [step, setStep] = useState(1); // 1: Config, 2: Setup Prompt 1, 3: Paste Estructura, 4: Prompt JSON Final, 5: Paste JSON, 6: Success
@@ -52,7 +54,7 @@ const YearlyUnitGeneratorModal = ({ isOpen, onClose, userId, selectedYear, sched
     // Reset when opened
     React.useEffect(() => {
         if (isOpen) {
-            setFormData({ curso: '', asignatura: '', estructuraBase: '', contexto: '' });
+            setFormData({ curso: '', asignatura: '', estructuraBase: '', contexto: '', levels: '' });
             setStep(1);
             setJsonInput('');
             setParsedUnits([]);
@@ -81,13 +83,39 @@ const YearlyUnitGeneratorModal = ({ isOpen, onClose, userId, selectedYear, sched
         fetchConfig();
     }, [isOpen, userId, selectedYear]);
 
-    // Calcular estadísticas aproximadas para dar contexto a la IA (Opcional, pero ayuda)
+    // Derived list of levels for the selected course/subject
+    const nivelesDisponibles = useMemo(() => {
+        if (!formData.curso || !formData.asignatura || !schedules || schedules.length === 0) return [];
+        const activeSchedule = schedules[0].scheduleData;
+        const blocks = activeSchedule?.[formData.curso]?.[formData.asignatura] || [];
+        
+        const levelsSet = new Set();
+        blocks.forEach(b => {
+            if (b.cursos && Array.isArray(b.cursos) && b.cursos.length > 0) {
+                levelsSet.add(b.cursos.join(', '));
+            } else if (b.cursos && typeof b.cursos === 'string') {
+                levelsSet.add(b.cursos);
+            }
+        });
+        
+        return Array.from(levelsSet).sort();
+    }, [formData.curso, formData.asignatura, schedules]);
+
     const calculateYearlyHours = () => {
         if (!formData.curso || !formData.asignatura) return 0;
         const activeSchedule = schedules?.[0]?.scheduleData;
         if (!activeSchedule?.[formData.curso]?.[formData.asignatura]) return 0;
 
-        const blocks = activeSchedule[formData.curso][formData.asignatura];
+        let blocks = activeSchedule[formData.curso][formData.asignatura];
+        
+        // Option 4: Filter by levels if provided
+        if (formData.levels) {
+            blocks = blocks.filter(b => {
+                const bLevels = Array.isArray(b.cursos) ? b.cursos.join(', ') : b.cursos;
+                return bLevels === formData.levels;
+            });
+        }
+        
         const weeklyMinutes = blocks.reduce((sum, b) => sum + (parseInt(b.duration) || 0), 0);
 
         // Asumiendo aprox 38 semanas efectivas de clases en un año escolar chileno estándar
@@ -129,9 +157,35 @@ ${schoolYearConfig.excludedDates?.length > 0 ? schoolYearConfig.excludedDates.ma
 
     // --- 3. AI GENERATION LOGIC ---
 
-    // Prompt 1: Extracción Estructural (Va hacia NotebookLM)
     const generateExtractionPrompt = () => {
         const { estimatedHours, scheduleDetails, configStr } = getContextStrings();
+
+        // Workshop level context
+        let workshopMsg = "";
+        if (formData.curso.toLowerCase().includes('taller') || formData.curso.toLowerCase().includes('multi')) {
+            let foundLevels = formData.levels;
+            if (!foundLevels && activeSchedule?.scheduleData?.[formData.curso]) {
+                for (const blocks of Object.values(activeSchedule.scheduleData[formData.curso])) {
+                    if (Array.isArray(blocks)) {
+                        const blockWithCursos = blocks.find(b => b && b.cursos);
+                        if (blockWithCursos) {
+                            foundLevels = Array.isArray(blockWithCursos.cursos) ? blockWithCursos.cursos.join(', ') : blockWithCursos.cursos;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            const cursosStr = foundLevels || 'estudiantes de varios niveles';
+            workshopMsg = `
+[INSTRUCCIÓN MULTI-CURSO Y MULTIGRADO (CRÍTICO)]:
+Este es un TALLER MULTIGRADO donde participan estudiantes de múltiples niveles: [${cursosStr}].
+Tu misión es diseñar una propuesta de unidades que sea pedagógicamente factible para un aula multigrado:
+1. Identifica y prioriza "OAs Transversales" que sean comunes a los niveles participantes para integrarlos en las mismas unidades.
+2. Si un OA es específico de un nivel, indícalo claramente (ej: "OA 1 de 6to Básico" y "OA 4 de 5to Básico").
+3. Diseña la progresión anual buscando la integración curricular, permitiendo que todos los niveles trabajen sobre un mismo eje temático con distinta profundidad.
+`;
+        }
 
         return `
 Actúa como un Especialista en Currículum Nacional Chileno Mineduc.
@@ -144,35 +198,7 @@ Por favor, memoriza las siguientes fechas para la construcción temporal de las 
 - Días en que el profesor dicta esta clase específica: ${scheduleDetails}.
 - Horas Pedagógicas Disponibles en el Año: ~${estimatedHours} hrs.
 
-${(formData.curso === 'Taller' || formData.curso === 'Multi-curso') ? (() => {
-    const activeSchedule = schedules?.[0]?.scheduleData;
-    let foundCursos = null;
-    if (activeSchedule?.[formData.curso]) {
-        // Robust search: Look for 'cursos' in any block of any subject for this workshop
-        for (const blocks of Object.values(activeSchedule[formData.curso])) {
-            if (Array.isArray(blocks)) {
-                const blockWithCursos = blocks.find(b => b && b.cursos);
-                if (blockWithCursos) {
-                    foundCursos = blockWithCursos.cursos;
-                    break;
-                }
-            }
-        }
-    }
-
-    if (foundCursos) {
-        const cursosStr = Array.isArray(foundCursos) ? foundCursos.join(', ') : foundCursos;
-        return `
-[INSTRUCCIÓN MULTI-CURSO Y MULTIGRADO (CRÍTICO)]:
-Este es un TALLER MULTIGRADO donde participan estudiantes de múltiples niveles: [${cursosStr}].
-Tu misión es diseñar una propuesta de unidades que sea pedagógicamente factible para un aula multigrado:
-1. Identifica y prioriza "OAs Transversales" que sean comunes a los niveles participantes para integrarlos en las mismas unidades.
-2. Si un OA es específico de un nivel, indícalo claramente (ej: "OA 1 de 6to Básico" y "OA 4 de 5to Básico").
-3. Diseña la progresión anual buscando la integración curricular, permitiendo que todos los niveles trabajen sobre un mismo eje temático con distinta profundidad.
-`;
-    }
-    return '';
-})() : ''}
+${workshopMsg}
 
 === CONFIGURACIÓN DE TU AÑO ESCOLAR ===
 ${configStr}
@@ -182,7 +208,7 @@ Por favor, entrégame la radiografía exacta del curso detallando para cada unid
 1. Número y Título de la Unidad: (INSTRUCCIÓN CRÍTICA PARA EL TÍTULO: NO uses simplemente "Unidad 1" o "Unidad 2". Analiza los aprendizajes de la unidad y crea un TÍTULO TEMÁTICO, COHERENTE y MOTIVADOR que refleje exactamente lo que desarrollarán los estudiantes en ese periodo).
 2. Propósito u Objetivo principal de la Unidad.
 3. DURACIÓN RECOMENDADA (CÁLCULO EXACTO): Basado en el peso que Mineduc le da a los OA de esta unidad, distribuye de forma matemática las semanas y horas pedagógicas que tomará. 
-   **REGLA DE ORO TEMPORAL:** DEBES asegurar que NINGUNA UNIDAD quede cortada por la mitad entre el primer y segundo semestre. Es decir, una unidad debe terminar ANTES de empezar las Vacaciones de Invierno (o el receso de mitad de año) indicadas en la LISTA DE FERIADOS superior, y la unidad siguiente debe empezar DESPUÉS de las Vacaciones. Ajusta la duración de las unidades del primer semestre para que calcen matemáticamente con este límite temporal exacto y no crucen los feriados indicados.
+    **REGLA DE ORO TEMPORAL:** DEBES asegurar que NINGUNA UNIDAD quede cortada por la mitad entre el primer y segundo semestre. Es decir, una unidad debe terminar ANTES de empezar las Vacaciones de Invierno (o el receso de mitad de año) indicadas en la LISTA DE FERIADOS superior, y la unidad siguiente debe empezar DESPUÉS de las Vacaciones. Ajusta la duración de las unidades del primer semestre para que calcen matemáticamente con este límite temporal exacto y no crucen los feriados indicados.
 4. Lista exacta de todos los OA (Objetivos de Aprendizaje) a trabajar. (ATENCIÓN: Prohibido agruparlos. Si una unidad tiene 5 OAs, debes listarme 5 OAs completamente separados, uno por línea, jamás fusionados como "OA 1, 3 y 4").
 5. Para CADA OA listado individualmente, provee al menos 2 o 3 "Indicadores de Evaluación" sugeridos por el programa. (Ejemplo: - OA 1... [Indicadores: x, y, z]).
 6. Lista de OAT (Objetivos Actitudinales y Transversales) seleccionados para la unidad.
@@ -195,6 +221,26 @@ Por favor, entrégame la radiografía exacta del curso detallando para cada unid
     const generateJsonPrompt = () => {
         const { estimatedHours, scheduleDetails, configStr } = getContextStrings();
 
+        // Workshop level context
+        let workshopContext = "";
+        if (formData.curso.toLowerCase().includes('taller') || formData.curso.toLowerCase().includes('multi')) {
+            let foundLevels = formData.levels;
+            if (!foundLevels && activeSchedule?.scheduleData?.[formData.curso]) {
+                for (const blocks of Object.values(activeSchedule.scheduleData[formData.curso])) {
+                    if (Array.isArray(blocks)) {
+                        const blockWithCursos = blocks.find(b => b && b.cursos);
+                        if (blockWithCursos) {
+                            foundLevels = Array.isArray(blockWithCursos.cursos) ? blockWithCursos.cursos.join(', ') : blockWithCursos.cursos;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (foundLevels) {
+                workshopContext = `\n[INSTRUCCIÓN MULTIGRADO]: Este taller se imparte a estudiantes de: [${foundLevels}]. Diseña una planificación anual inclusiva y multinivel.`;
+            }
+        }
+
         return `
 ROL DE FORMATO (OBLIGATORIO): Actúa como una API REST estricta. Tu única función es recibir datos y devolver un ARREGLO JSON puro. NO hables, NO expliques, NO uses markdown.
 
@@ -204,21 +250,7 @@ Tarea: Tomar la Estructura Base proporcionada y convertirla en el Programa Anual
 Curso: "${formData.curso}"
 Asignatura: "${formData.asignatura}"
 ${estimatedHours > 0 ? `Contexto Temporal Anual: Aproximadamente ${estimatedHours} horas pedagógicas disponibles en todo el año.` : ''}
-
-${(formData.curso === 'Taller' || formData.curso === 'Multi-curso') ? (() => {
-    const activeSchedule = schedules?.[0]?.scheduleData;
-    const firstSubject = Object.values(activeSchedule?.[formData.curso] || {})[0];
-    const firstBlock = Array.isArray(firstSubject) ? firstSubject[0] : null;
-    if (firstBlock && firstBlock.cursos) {
-        const cursosStr = Array.isArray(firstBlock.cursos) ? firstBlock.cursos.join(', ') : firstBlock.cursos;
-        return `
-CONTEXTO MULTI-CURSO (OBLIGATORIO):
-Este es un TALLER donde participan estudiantes de múltiples niveles: [${cursosStr}].
-TAREA PEDAGÓGICA ESPECIAL: Genera una planificación anual JSON que sea inclusiva y multinivel. Las unidades deben permitir el desarrollo simultáneo de estudiantes de diferentes etapas, fomentando la colaboración y asegurando que los indicadores de evaluación sean accesibles y pertinentes para la diversidad de niveles presentes.
-`;
-    }
-    return '';
-})() : ''}
+${workshopContext}
 ${formData.contexto ? `Contexto/Instrucciones Específicas del Docente: "${formData.contexto}"` : ''}
 
 === ESTRUCTURA BASE (EXTRAÍDA PREVIAMENTE POR NOTEBOOKLM) ===
@@ -305,6 +337,7 @@ IMPORTANTE:
                 numero: unit.numero || (index + 1), // Asegurar correlativo si falta
                 curso: formData.curso,
                 asignatura: formData.asignatura,
+                levels: formData.levels,
                 userId: userId,
                 fechaInicio: unit.fechaInicio || '', // Respeta la fecha de la IA
                 fechaTermino: unit.fechaTermino || '',
@@ -366,23 +399,15 @@ IMPORTANTE:
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Curso</label>
-                                    <select value={formData.curso} onChange={e => setFormData(p => ({ ...p, curso: e.target.value, asignatura: '' }))} className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-white focus:border-indigo-500 outline-none transition-colors">
-                                        <option value="">Selecciona Curso...</option>
-                                        {cursosDisponibles.map(c => {
-                                            let label = c;
-                                            if (c === 'Taller' || c === 'Multi-curso') {
-                                                const activeSchedule = schedules?.[0]?.scheduleData;
-                                                const firstSubject = Object.values(activeSchedule?.[c] || {})[0];
-                                                const firstBlock = Array.isArray(firstSubject) ? firstSubject[0] : null;
-                                                if (firstBlock && firstBlock.cursos) {
-                                                    const cursosStr = Array.isArray(firstBlock.cursos) 
-                                                        ? firstBlock.cursos.join(', ')
-                                                        : firstBlock.cursos;
-                                                    label = `Taller (${cursosStr})`;
-                                                }
-                                            }
-                                            return <option key={c} value={c}>{label}</option>;
-                                        })}
+                                    <select
+                                        value={formData.curso}
+                                        onChange={(e) => setFormData({ ...formData, curso: e.target.value, asignatura: '' })}
+                                        className="w-full p-3 rounded-xl border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all bg-slate-800 text-white"
+                                    >
+                                        <option value="">Curso...</option>
+                                        {cursosDisponibles.map(c => (
+                                            <option key={c} value={c}>{c}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="space-y-2">
@@ -392,6 +417,22 @@ IMPORTANTE:
                                         {formData.curso && subjectsMap[formData.curso] ? Array.from(subjectsMap[formData.curso]).map(a => <option key={a} value={a}>{a}</option>) : null}
                                     </select>
                                 </div>
+
+                                {nivelesDisponibles.length > 1 && (
+                                    <div className="space-y-2 col-span-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Niveles Participantes</label>
+                                        <select
+                                            value={formData.levels}
+                                            onChange={(e) => setFormData({ ...formData, levels: e.target.value })}
+                                            className="w-full p-3 rounded-xl border border-indigo-500/50 bg-slate-800 text-white focus:border-indigo-500 outline-none transition-all animate-pulse"
+                                        >
+                                            <option value="">Todos los niveles del taller...</option>
+                                            {nivelesDisponibles.map(n => (
+                                                <option key={n} value={n}>Solo niveles: {n}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 flex gap-3 text-indigo-300 text-sm">

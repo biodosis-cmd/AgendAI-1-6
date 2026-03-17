@@ -92,9 +92,14 @@ export const parseScheduleExcel = (fileBuffer) => {
                     curso = `${curso} ${letra}`;
                 }
 
+                // --- SMART WORKSHOP DIFFERENTIATION ---
+                // We detect if it's a workshop to flag it, but we NO LONGER append the name.
+                // The differentiation will be handled dynamically in the UI.
+                const detalle = row[7] ? String(row[7]).trim() : '';
+                const isWorkshop = curso.toLowerCase().includes('taller') || curso.toLowerCase().includes('multi');
+
                 // Asignatura logic
                 let asignatura = row[6] ? String(row[6]).trim() : '';
-                const detalle = row[7] ? String(row[7]).trim() : '';
 
                 // If Asignatura is generic or empty, and Detalle exists, use Detalle
                 const lowerAsig = asignatura.toLowerCase();
@@ -125,7 +130,9 @@ export const parseScheduleExcel = (fileBuffer) => {
                 scheduleData[curso][asignatura].push({
                     dia: diaInt,
                     hora: finalHora,
-                    duration: duracion
+                    duration: duracion,
+                    isMultiCourse: isWorkshop,
+                    cursos: isWorkshop && detalle ? detalle.split(',').map(c => c.trim()) : []
                 });
                 count++;
             });

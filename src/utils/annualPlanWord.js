@@ -116,7 +116,7 @@ const createBulletedList = (items) => {
 
 // --- MAIN GENERATOR ---
 
-export const generateAnnualPlanWord = async (courseName, subjectName, teacherName = '', year, units) => {
+export const generateAnnualPlanWord = async (courseName, subjectName, teacherName = '', year, units, levels = null) => {
 
     // 1. PAGE HEADER (School Info)
     const pageHeader = new Header({
@@ -155,7 +155,7 @@ export const generateAnnualPlanWord = async (courseName, subjectName, teacherNam
             new TableRow({
                 children: [
                     createMetadataCell("Curso", 15, true),
-                    createMetadataCell(courseName, 35),
+                    createMetadataCell(levels ? `${courseName} [${levels}]` : courseName, 35),
                     createMetadataCell("Año", 15, true),
                     createMetadataCell(year.toString(), 35),
                 ]

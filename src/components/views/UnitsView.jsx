@@ -79,24 +79,31 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
         return true;
     };
 
-    const handleExportPDF = (courseKey, courseUnits) => {
+    const handleExportPDF = (group) => {
         if (!validateName()) return;
-        const [curso, asignatura] = courseKey.split(' - ');
-        generateAnnualPlanPDF(curso, asignatura, teacherName, selectedYear, courseUnits);
+        generateAnnualPlanPDF(group.curso, group.asignatura, teacherName, selectedYear, group.items, group.levels);
     };
 
-    const handleExportWord = (courseKey, courseUnits) => {
+    const handleExportWord = (group) => {
         if (!validateName()) return;
-        const [curso, asignatura] = courseKey.split(' - ');
-        generateAnnualPlanWord(curso, asignatura, teacherName, selectedYear, courseUnits);
+        generateAnnualPlanWord(group.curso, group.asignatura, teacherName, selectedYear, group.items, group.levels);
     };
 
     const unitsByCourse = useMemo(() => {
         return units.reduce((acc, unit) => {
-            // Keep the exact course name which might include the letter
-            const key = `${unit.curso} - ${unit.asignatura}`;
-            if (!acc[key]) acc[key] = [];
-            acc[key].push(unit);
+            // Include levels in the key to separate groups (e.g. for Workshops)
+            const levelsPart = unit.levels ? ` (${unit.levels})` : '';
+            const key = `${unit.curso} - ${unit.asignatura}${levelsPart}`;
+            
+            if (!acc[key]) {
+                acc[key] = { 
+                    items: [], 
+                    curso: unit.curso, 
+                    asignatura: unit.asignatura, 
+                    levels: unit.levels || '' 
+                };
+            }
+            acc[key].items.push(unit);
             return acc;
         }, {});
     }, [units]);
@@ -174,13 +181,8 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
             ) : (
                 <div className="space-y-8">
                     {Object.keys(unitsByCourse).sort().map(courseKey => {
-                        // In unitsByCourse, courseKey is "Curso - Asignatura". 
-                        // The color should be based on the exact Curso part, grouping by the letter if it has one.
-                        const cursoName = courseKey.split(' - ')[0].trim();
-                        const courseColorBg = getColorForCourse(cursoName);
-                        // Convert bg-color to border-color roughly by substituting 'bg-' with 'border-' 
-                        // Note: Tailwind handles these dynamically, but as a fallback/cleaner look we can just use the bg color
-                        // as a small leading indicator block.
+                        const group = unitsByCourse[courseKey];
+                        const courseColorBg = getColorForCourse(group.curso);
 
                         return (
                             <div key={courseKey}>
@@ -196,18 +198,25 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
                                             className={`transition-transform duration-300 ${expandedCourses[courseKey] ? 'rotate-180' : '-rotate-90'} text-slate-400`}
                                             size={20}
                                         />
-                                        <h3 className="text-2xl font-semibold text-slate-200">{courseKey}</h3>
+                                        <h3 className="text-2xl font-semibold text-slate-200 flex items-center gap-3">
+                                            {group.curso} - {group.asignatura}
+                                            {group.levels && (
+                                                <span className="text-sm font-normal text-slate-500 bg-slate-800/50 px-3 py-1 rounded-full border border-slate-700/50">
+                                                    {group.levels}
+                                                </span>
+                                            )}
+                                        </h3>
                                     </div>
                                     <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                                         <button
-                                            onClick={() => handleExportPDF(courseKey, unitsByCourse[courseKey])}
+                                            onClick={() => handleExportPDF(group)}
                                             className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-400 rounded-lg text-sm transition-colors border border-slate-700"
                                             title="Exportar a PDF"
                                         >
                                             <FileDown size={16} /> PDF
                                         </button>
                                         <button
-                                            onClick={() => handleExportWord(courseKey, unitsByCourse[courseKey])}
+                                            onClick={() => handleExportWord(group)}
                                             className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-lg text-sm transition-colors border border-slate-700"
                                             title="Exportar a Word"
                                         >
@@ -217,7 +226,7 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
                                 </div>
                                 {expandedCourses[courseKey] && (
                                     <div className="space-y-4">
-                                        {unitsByCourse[courseKey].sort((a, b) => (a.numero || 999) - (b.numero || 999)).map(unit => {
+                                        {group.items.sort((a, b) => (a.numero || 999) - (b.numero || 999)).map(unit => {
                                             const isExpanded = expandedUnitId === unit.id;
                                             const oaCodes = extractOACodes(unit.detalles);
                                             const linkedClasses = clases.filter(clase => {
@@ -236,8 +245,13 @@ const UnitsView = ({ units, clases, userId, onBack, onEditClase, onDelete, selec
                                                     <div className="p-5 cursor-pointer" onClick={() => setExpandedUnitId(isExpanded ? null : unit.id)}>
                                                         <div className="flex justify-between items-center">
                                                             <div>
-                                                                <h4 className="font-bold text-xl text-slate-100">
-                                                                    {unit.numero ? `Unidad ${unit.numero}: ` : ''}{unit.nombre}
+                                                                <h4 className="font-bold text-xl text-slate-100 flex items-center gap-2">
+                                                                    <span>{unit.numero ? `Unidad ${unit.numero}: ` : ''}{unit.nombre}</span>
+                                                                    {unit.levels && (
+                                                                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700/50">
+                                                                            {unit.levels}
+                                                                        </span>
+                                                                    )}
                                                                 </h4>
                                                                 <p className="text-sm text-slate-400 mt-1">
                                                                     {unit.fechaInicio && unit.fechaTermino ? (

@@ -15,7 +15,7 @@ import { CURSO_COLORES, STATUS } from '@/constants';
  * @param {string} userId
  */
 export const calculateClassSchedule = (data, existingClasses, schedules, selectedYear, selectedWeek, userId) => {
-    const { curso, asignatura, clases: sesiones, unitStartDate, unitLimitDate, customStartDate } = data; // customStartDate is new
+    const { curso, asignatura, clases: sesiones, unitStartDate, unitLimitDate, customStartDate, levels } = data; // levels is for Option 4
     const conflicts = [];
     const classesToCreate = [];
 
@@ -30,7 +30,16 @@ export const calculateClassSchedule = (data, existingClasses, schedules, selecte
     }
 
     // 1. Check if the course/subject actually exists in this schedule
-    const blocksForSubject = activeSchedule.scheduleData[curso]?.[asignatura];
+    let blocksForSubject = activeSchedule.scheduleData[curso]?.[asignatura];
+    
+    // Option 4: Filter by levels if provided
+    if (levels && Array.isArray(blocksForSubject)) {
+        blocksForSubject = blocksForSubject.filter(b => {
+            const bLevels = Array.isArray(b.cursos) ? b.cursos.join(', ') : b.cursos;
+            return bLevels === levels;
+        });
+    }
+
     if (!blocksForSubject || !Array.isArray(blocksForSubject) || blocksForSubject.length === 0) {
         return {
             success: false,
@@ -125,14 +134,13 @@ export const calculateClassSchedule = (data, existingClasses, schedules, selecte
         }
         // END SCHOOL YEAR CHECK
 
-        const diaSemana = fechaCheck.getDay(); // 0=Sun, 1=Mon...
-
-        // Find blocks in the schedule for this day of the week
-        // Note: Schedule data often uses 1=Monday... 5=Friday. Our helper usually aligns this.
-        // Let's assume standardized 1-5 format in scheduleData.
-        // Javascript getDay(): 0 Sun, 1 Mon.
-
-        const matchingBlocks = blocksForSubject.filter(b => b.dia === diaSemana);
+        const diaSemana = fechaCheck.getDay();
+        const dayMap = { 'Domingo': 0, 'Sunday': 0, 'Lunes': 1, 'Monday': 1, 'Martes': 2, 'Tuesday': 2, 'Miércoles': 3, 'Miercoles': 3, 'Wednesday': 3, 'Jueves': 4, 'Thursday': 4, 'Viernes': 5, 'Friday': 5, 'Sábado': 6, 'Saturday': 6 };
+        const matchingBlocks = blocksForSubject.filter(b => {
+            const d = b.dia !== undefined ? b.dia : b.day;
+            const mapped = typeof d === 'string' ? dayMap[d] : d;
+            return mapped === diaSemana;
+        });
 
         if (matchingBlocks.length > 0) {
             // Check each block against existing classes
@@ -213,8 +221,13 @@ export const calculateClassSchedule = (data, existingClasses, schedules, selecte
         // END SCHOOL YEAR CHECK
 
         const diaSemana = fechaActual.getDay();
+        const dayMap = { 'Domingo': 0, 'Sunday': 0, 'Lunes': 1, 'Monday': 1, 'Martes': 2, 'Tuesday': 2, 'Miércoles': 3, 'Miercoles': 3, 'Wednesday': 3, 'Jueves': 4, 'Thursday': 4, 'Viernes': 5, 'Friday': 5, 'Sábado': 6, 'Saturday': 6 };
         const matchingBlocks = blocksForSubject
-            .filter(b => b.dia === diaSemana)
+            .filter(b => {
+                const d = b.dia !== undefined ? b.dia : b.day;
+                const mapped = typeof d === 'string' ? dayMap[d] : d;
+                return mapped === diaSemana;
+            })
             .sort((a, b) => a.hora.localeCompare(b.hora));
 
         // Dedupe blocks by time just in case

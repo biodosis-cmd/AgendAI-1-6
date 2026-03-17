@@ -148,8 +148,13 @@ const UnitSelectionModal = ({ isOpen, onClose, units = [], onSelectUnit, selecte
                                                         <Calendar size={12} /> {u.fechaInicio ? new Date(u.fechaInicio).toLocaleDateString() : 'Sin fecha'}
                                                     </span>
                                                 </div>
-                                                <h5 className="font-medium text-slate-200 group-hover:text-indigo-300 transition-colors">
+                                                <h5 className="font-medium text-slate-200 group-hover:text-indigo-300 transition-colors flex items-center gap-2">
                                                     {u.nombre}
+                                                    {u.levels && (
+                                                        <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-700 text-slate-400 border border-slate-600">
+                                                            {u.levels}
+                                                        </span>
+                                                    )}
                                                 </h5>
                                                 <p className="text-xs text-slate-500 mt-1 line-clamp-1">
                                                     {u.asignatura}
