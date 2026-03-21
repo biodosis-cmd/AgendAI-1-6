@@ -191,7 +191,7 @@ Tu misión es diseñar una propuesta de unidades que sea pedagógicamente factib
 Actúa como un Especialista en Currículum Nacional Chileno Mineduc.
 Tu objetivo es analizar los "Planes y Programas" oficiales que te he adjuntado de la asignatura "${formData.asignatura}" para "${formData.curso}".
 
-Misión: Entregarme la estructura oficial anual, unidad por unidad, en texto claro (NO EN JSON), abarcando el 100% del programa obligatorio anual. NO inventes unidades, cíñete a la propuesta del Mineduc.
+Misión: Entregarme la estructura oficial anual, unidad por unidad, abarcando el 100% del programa obligatorio anual. NO inventes unidades, cíñete a la propuesta del Mineduc.
 
 CONTEXTO LOGÍSTICO Y TEMPORAL DEL PROFESOR (ESTRICTO):
 Por favor, memoriza las siguientes fechas para la construcción temporal de las unidades:
@@ -200,20 +200,19 @@ Por favor, memoriza las siguientes fechas para la construcción temporal de las 
 
 ${workshopMsg}
 
-=== CONFIGURACIÓN DE TU AÑO ESCOLAR ===
+= CONFIGURACIÓN DE TU AÑO ESCOLAR =
 ${configStr}
 =======================================
 
-Por favor, entrégame la radiografía exacta del curso detallando para cada unidad:
+Por favor, entrégame el detalle para cada unidad:
 1. Número y Título de la Unidad: (INSTRUCCIÓN CRÍTICA PARA EL TÍTULO: NO uses simplemente "Unidad 1" o "Unidad 2". Analiza los aprendizajes de la unidad y crea un TÍTULO TEMÁTICO, COHERENTE y MOTIVADOR que refleje exactamente lo que desarrollarán los estudiantes en ese periodo).
 2. Propósito u Objetivo principal de la Unidad.
 3. DURACIÓN RECOMENDADA (CÁLCULO EXACTO): Basado en el peso que Mineduc le da a los OA de esta unidad, distribuye de forma matemática las semanas y horas pedagógicas que tomará. 
     **REGLA DE ORO TEMPORAL:** DEBES asegurar que NINGUNA UNIDAD quede cortada por la mitad entre el primer y segundo semestre. Es decir, una unidad debe terminar ANTES de empezar las Vacaciones de Invierno (o el receso de mitad de año) indicadas en la LISTA DE FERIADOS superior, y la unidad siguiente debe empezar DESPUÉS de las Vacaciones. Ajusta la duración de las unidades del primer semestre para que calcen matemáticamente con este límite temporal exacto y no crucen los feriados indicados.
-4. Lista exacta de todos los OA (Objetivos de Aprendizaje) a trabajar. (ATENCIÓN: Prohibido agruparlos. Si una unidad tiene 5 OAs, debes listarme 5 OAs completamente separados, uno por línea, jamás fusionados como "OA 1, 3 y 4").
-5. Para CADA OA listado individualmente, provee al menos 2 o 3 "Indicadores de Evaluación" sugeridos por el programa. (Ejemplo: - OA 1... [Indicadores: x, y, z]).
-6. Lista de OAT (Objetivos Actitudinales y Transversales) seleccionados para la unidad.
-7. Lista de Habilidades de la asignatura trabajadas.
-8. Ejes temáticos correspondientes.
+4. Lista exacta de todos los OA (Objetivos de Aprendizaje con su descripción) a trabajar. (ATENCIÓN: Prohibido agruparlos. Si una unidad tiene 5 OAs, debes listar 5 OAs completamente separados, uno por línea, jamás fusionados como "OA 1, 3 y 4" y siempre debes describir cada OA). Para CADA OA listado individualmente, provee al menos 5 "Indicadores de Evaluación" sugeridos por el programa o en su ausencia crealos. Adicional a estos 5 indicadores incluye 2 indicadores de actitudes, extraídos de los Objetivos actitudinales del programa, por tanto serían 7 indicadores en total.
+6. Lista de al menos 3 OAT (Objetivos Transversales) seleccionados para la unidad.(ATENCIÓN: Prohibido agruparlos. jamás fusionados como "OAT 1, 3 y 4" y siempre separados y con su descripción literal).
+7. Ejes temáticos correspondientes.
+8. adicional a las unidades del programa, crea la unidad 0 al inicio del año escolar, nombre: Reencontrándonos. máximo 2 semanas de duración. para bienvenida y diagnóstico. usa la misma estructura de las demás unidades.
 `;
     };
 
@@ -242,9 +241,15 @@ Por favor, entrégame la radiografía exacta del curso detallando para cada unid
         }
 
         return `
-ROL DE FORMATO (OBLIGATORIO): Actúa como una API REST estricta. Tu única función es recibir datos y devolver un ARREGLO JSON puro. NO hables, NO expliques, NO uses markdown.
+ROL DE FORMATO (OBLIGATORIO): Actúa como una API REST estricta. Tu única función final es devolver un ARREGLO JSON puro. NO uses markdown fuera del bloque JSON final.
+ROL PEDAGÓGICO (EL EXPERTO): Actúa como un Especialista en Currículum Nacional Chileno Mineduc y Experto en Aprendizaje Profundo (Deep Learning - Michael Fullan)..
 
-ROL PEDAGÓGICO (EL EXPERTO): Actúa como un Especialista en Currículum Nacional Chileno Mineduc y Experto en Aprendizaje Profundo (Deep Learning - Michael Fullan).
+METODOLOGÍA DE PROCESAMIENTO (CRÍTICO PARA EVITAR RESÚMENES):
+Para garantizar la máxima profundidad y evitar que abrevies el contenido, debes generar la respuesta siguiendo este proceso secuencial interno estricto:
+Paso 1: Concéntrate EXCLUSIVAMENTE en la Unidad 0. Toma los Objetivos de Aprendizaje (OA) y desglósalos al máximo. No resumas ningún indicador, amplíalos basándote en el currículum. Calcula sus fechas exactas. Retén este objeto JSON en tu memoria.
+Paso 2: Pasa a la Unidad 1. Haz exactamente lo mismo. Expande la articulación de los OA, detalla los indicadores con precisión técnica y metodológica. Retén este objeto JSON en tu memoria.
+Paso 3: Repite este proceso intensivo e individual para cada unidad. Dedica el máximo de "tokens" y esfuerzo a que cada unidad sea exhaustiva por sí sola.
+Paso 4 (SALIDA FINAL): Una vez que hayas construido las unidades individualmente con el máximo detalle posible, únelas y devuelve ÚNICAMENTE el arreglo JSON final válido que las contiene a todas.
 
 Tarea: Tomar la Estructura Base proporcionada y convertirla en el Programa Anual de Unidades Didácticas en formato JSON.
 Curso: "${formData.curso}"
@@ -279,15 +284,15 @@ Respuesta UNICAMENTE un ARREGLO JSON válido con este formato exacto para CADA u
     "objetivos": "Descripción técnica de los propósitos de articulación de los OA de esta unidad",
     "fechaInicio": "YYYY-MM-DD",
     "fechaTermino": "YYYY-MM-DD",
-    "oat": ["OAT seleccionado 1", "OAT seleccionado 2"],
-    "habilidades": ["Habilidad Profunda seleccionada"],
+    "oat": ["OAT seleccionado 1 (coherente con la unidad)", "OAT seleccionado 2", "OAT seleccionado 3", "OAT seleccionado 4"],
+    "habilidades": ["Habilidad del siglo XXI seleccionadas (sin resumir)"],
     "ejes": ["Eje temático principal de la unidad"],
     "tipoEvaluacion": "Sumativa / Formativa / Autoevaluación",
     "detalles": [
       {
         "oa": "Código y descripción COMPLETA de UN ÚNICO OA (Prohibido documentar más de un OA en este campo. Si hay varios, crea múltiples objetos en este arreglo)",
         "tiempo": "Ej: 3 semanas (9 horas pedagógicas)",
-        "indicadores": ["Indicador de evaluación 1", "Indicador de evaluación 2", "Indicador 3"],
+        "indicadores": ["Indicador de evaluación 1 (sin resumir)", "Indicador de evaluación 2", "Indicador 3", "Indicador 4", "Indicador 5"],
         "instrumento": "Rúbrica / Escala de Apreciación"
       }
     ]
