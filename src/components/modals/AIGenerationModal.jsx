@@ -553,6 +553,17 @@ Requisitos de Calidad de la Respuesta:
 2. Formato de Salida: ÚNICAMENTE un array JSON válido (sin markdown).
 3. Estructura del JSON: Array de objetos con claves EXACTAS: "objetivo" (string), "inicio" (string), "desarrollo" (string), "aplicacion" (string), "cierre" (string). ¡Presta especial atención a escribir correctamente la palabra "desarrollo", NUNCA la escribas mal (como "desarosllo" o "dessarrollo")!
 
+METODOLOGÍA DE PROCESAMIENTO (CRÍTICO PARA EVITAR RESÚMENES):
+Para garantizar la máxima profundidad y evitar que abrevies el contenido, debes generar la respuesta siguiendo este proceso secuencial interno estricto:
+
+Paso 1: Concéntrate EXCLUSIVAMENTE en la primera clase. Toma los Objetivos de Aprendizaje (OA) y desglósalos al máximo. No resumas ningún indicador, amplíalos basándote en el currículum.
+
+Paso 2: Pasa a la siguiente clase y repite el proceso. Expande la articulación de los OA, detalla los indicadores con precisión técnica y metodológica.
+
+Paso 3: Dedica el máximo de "tokens" y esfuerzo a que cada clase sea exhaustiva por sí sola. Está estrictamente prohibido usar frases como "repetir actividad anterior", "continuar con el desarrollo" o usar elipsis. Cada clase debe ser un guion independiente y detallado.
+
+Paso 4 (SALIDA FINAL): Una vez construido el detalle individual de todas las clases, devuelve ÚNICAMENTE el arreglo JSON final válido.
+
 IMPORTANTE: Revisa tu respuesta paso a paso. Asegúrate de que no haya comas al final de las listas (trailing commas) antes de responder.`;
 
         setGeneratedPrompt(finalPrompt.trim());
