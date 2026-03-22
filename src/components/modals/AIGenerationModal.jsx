@@ -397,7 +397,7 @@ const AIGenerationModal = ({ isOpen, onClose, onClassesGenerated, selectedYear, 
     }, [selectedUnit, formData.curso, formData.asignatura, activeSchedule, schoolYearConfig]);
 
     useEffect(() => {
-        if (formData.curso) {
+        if (formData.curso && !isLockedMode) {
             setFormData(prev => ({ ...prev, asignatura: asignaturasDisponibles[0] || '' }));
             setCustomStartDate('');
         }
