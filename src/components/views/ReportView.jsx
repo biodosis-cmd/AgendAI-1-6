@@ -16,6 +16,7 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
     const [teacherName, setTeacherName] = useState('');
     const [filtroCurso, setFiltroCurso] = useState('');
     const [filtroAsignatura, setFiltroAsignatura] = useState('');
+    const [filtroGrupoTaller, setFiltroGrupoTaller] = useState('');
     const [reportYear, setReportYear] = useState(initialYear);
 
     // ... existing useMemo logic ...
@@ -49,6 +50,17 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
         return [...new Set(clasesDelAno.filter(c => c.curso === filtroCurso).map(c => c.asignatura))].sort();
     }, [clasesDelAno, filtroCurso]);
 
+    // Derive available taller groups from existing units that match the current course/subject filters
+    const gruposTallerDisponibles = useMemo(() => {
+        if (!filtroCurso) return [];
+        const filtered = units.filter(u =>
+            u.curso === filtroCurso &&
+            (!filtroAsignatura || u.asignatura === filtroAsignatura) &&
+            u.levels
+        );
+        return [...new Set(filtered.map(u => u.levels))].sort();
+    }, [units, filtroCurso, filtroAsignatura]);
+
     const findUnitForClass = useCallback((clase) => {
         return units.find(unit => {
             const claseDate = new Date(clase.fecha);
@@ -65,8 +77,13 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
         return clasesDelAno
             .filter(c => !filtroCurso || c.curso === filtroCurso)
             .filter(c => !filtroAsignatura || c.asignatura === filtroAsignatura)
+            .filter(c => {
+                if (!filtroGrupoTaller) return true;
+                const unit = findUnitForClass(c);
+                return unit && unit.levels === filtroGrupoTaller;
+            })
             .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
-    }, [clasesDelAno, filtroCurso, filtroAsignatura]);
+    }, [clasesDelAno, filtroCurso, filtroAsignatura, filtroGrupoTaller, findUnitForClass]);
 
     const exportarACSV = () => {
         if (!validateName()) return;
@@ -271,9 +288,42 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
                         className="w-full pl-10 p-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 focus:border-indigo-500 outline-none placeholder:text-slate-500"
                     />
                 </div>
-                <select value={filtroCurso} onChange={e => setFiltroCurso(e.target.value)} className="p-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 focus:border-indigo-500 outline-none col-span-1 md:col-span-1"><option value="">Todos los Cursos</option>{cursosDisponibles.map(c => <option key={c} value={c}>{c}</option>)}</select>
-                <select value={filtroAsignatura} onChange={e => setFiltroAsignatura(e.target.value)} className="p-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 focus:border-indigo-500 outline-none col-span-1 md:col-span-1"><option value="">Todas las Asignaturas</option>{asignaturasDisponibles.map(a => <option key={a} value={a}>{a}</option>)}</select>
+                <select
+                    value={filtroCurso}
+                    onChange={e => { setFiltroCurso(e.target.value); setFiltroGrupoTaller(''); }}
+                    className="p-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 focus:border-indigo-500 outline-none"
+                >
+                    <option value="">Todos los Cursos</option>
+                    {cursosDisponibles.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <select
+                    value={filtroAsignatura}
+                    onChange={e => { setFiltroAsignatura(e.target.value); setFiltroGrupoTaller(''); }}
+                    className="p-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 focus:border-indigo-500 outline-none"
+                >
+                    <option value="">Todas las Asignaturas</option>
+                    {asignaturasDisponibles.map(a => <option key={a} value={a}>{a}</option>)}
+                </select>
             </div>
+
+            {/* Taller group selector — only shown when multiple groups exist */}
+            {gruposTallerDisponibles.length > 1 && (
+                <div className="mb-6 p-4 card-glass rounded-xl border border-indigo-500/30 animate-in fade-in slide-in-from-top-1">
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider whitespace-nowrap">Grupo del Taller:</span>
+                        <select
+                            value={filtroGrupoTaller}
+                            onChange={e => setFiltroGrupoTaller(e.target.value)}
+                            className="flex-1 p-2.5 rounded-lg bg-slate-800 border border-indigo-500/50 text-slate-200 focus:border-indigo-400 outline-none text-sm"
+                        >
+                            <option value="">Todos los grupos del taller</option>
+                            {gruposTallerDisponibles.map(g => (
+                                <option key={g} value={g}>Grupo: {g}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+            )}
 
             <div className="mb-6 p-5 card-glass rounded-xl border border-slate-700/50">
                 <h3 className="text-lg font-semibold mb-4 text-slate-200">Opciones de Exportación</h3>
