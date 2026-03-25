@@ -148,7 +148,7 @@ const AppContent = () => {
                     onOpenAiModal={() => openModal('aiGeneration', { onClassesGenerated: handleSaveGeneratedClasses, selectedYear, selectedWeek, schedules, units })}
                     onOpenUnitPlanner={handleOpenUnitPlanner}
                 />}
-                {view === 'report' && <ReportView userId={userId} clases={clases} units={units} onBack={() => actions.setView('calendar')} selectedYear={selectedYear} onEditClase={handleEditClase} onDelete={handleDelete} onDeleteMultiple={handleDeleteMultiple} />}
+                {view === 'report' && <ReportView userId={userId} clases={clases} units={units} schedules={schedules} onBack={() => actions.setView('calendar')} selectedYear={selectedYear} onEditClase={handleEditClase} onDelete={handleDelete} onDeleteMultiple={handleDeleteMultiple} />}
                 {view === 'units' && <UnitsView units={units.filter(u => !u.fechaInicio || new Date(u.fechaInicio).getFullYear() === selectedYear)} clases={filteredClasses} userId={userId} onBack={() => actions.setView('calendar')} onEditClase={handleEditClase} onDelete={handleDeleteUnit} selectedYear={selectedYear} selectedWeek={selectedWeek} schedules={schedules} />}
                 {view === 'schedules' && <SchedulesView userId={userId} schedules={schedules} onBack={() => actions.setView('calendar')} onEdit={handleEditSchedule} />}
                 {view === 'dashboard' && <DashboardView clases={filteredClasses} units={units} selectedYear={selectedYear} userId={userId} />}

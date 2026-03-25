@@ -238,7 +238,8 @@ export const generateReportListWord = async (clases, teacherName, year, filters,
             }
 
         } else {
-            // Suspended Class
+            // Suspended or Virtual Class
+            const isVirtual = !!c.isVirtualExclusion;
             bodyChildren.push(
                 new Table({
                     width: { size: 100, type: WidthType.PERCENTAGE },
@@ -247,16 +248,16 @@ export const generateReportListWord = async (clases, teacherName, year, filters,
                             children: [
                                 new TableCell({
                                     children: [
-                                        createTextParagraph("Clase No Realizada", { bold: true, size: 22, color: "991B1B", alignment: AlignmentType.CENTER }),
-                                        createTextParagraph(`Motivo: ${c.motivoSuspension}`, { size: 20, color: "991B1B", alignment: AlignmentType.CENTER })
+                                        createTextParagraph(isVirtual ? "Sin Clases" : "Clase No Realizada", { bold: true, size: 22, color: isVirtual ? "B45309" : "991B1B", alignment: AlignmentType.CENTER }),
+                                        createTextParagraph(isVirtual ? c.motivoSuspension : `Motivo: ${c.motivoSuspension}`, { size: 20, color: isVirtual ? "B45309" : "991B1B", alignment: AlignmentType.CENTER })
                                     ],
-                                    shading: { fill: "FEF2F2" }, // Red bg
+                                    shading: { fill: isVirtual ? "FFFBEB" : "FEF2F2" }, // Amber/Yellow or Red bg
                                     margins: { top: 200, bottom: 200, left: 100, right: 100 },
                                     borders: {
-                                        top: { style: BorderStyle.SINGLE, size: 1, color: "FECACA" },
-                                        bottom: { style: BorderStyle.SINGLE, size: 1, color: "FECACA" },
-                                        left: { style: BorderStyle.SINGLE, size: 1, color: "FECACA" },
-                                        right: { style: BorderStyle.SINGLE, size: 1, color: "FECACA" },
+                                        top: { style: BorderStyle.SINGLE, size: 1, color: isVirtual ? "FDE68A" : "FECACA" },
+                                        bottom: { style: BorderStyle.SINGLE, size: 1, color: isVirtual ? "FDE68A" : "FECACA" },
+                                        left: { style: BorderStyle.SINGLE, size: 1, color: isVirtual ? "FDE68A" : "FECACA" },
+                                        right: { style: BorderStyle.SINGLE, size: 1, color: isVirtual ? "FDE68A" : "FECACA" },
                                     }
                                 })
                             ]
@@ -409,10 +410,11 @@ export const generateReportTableWord = async (clases, teacherName, year, filters
             }
 
         } else {
-            // Suspended
-            rowShading = { fill: "FFE6E6" };
-            cell3Content = [createTextParagraph("CLASE NO REALIZADA", { bold: true, color: "CC0000", alignment: AlignmentType.CENTER })];
-            cell4Content = [createTextParagraph(`Motivo: ${c.motivoSuspension}`, { color: "CC0000" })];
+            // Suspended or Virtual
+            const isVirtual = !!c.isVirtualExclusion;
+            rowShading = { fill: isVirtual ? "FFFBEB" : "FFE6E6" };
+            cell3Content = [createTextParagraph(isVirtual ? "SIN CLASES" : "CLASE NO REALIZADA", { bold: true, color: isVirtual ? "B45309" : "CC0000", alignment: AlignmentType.CENTER })];
+            cell4Content = [createTextParagraph(isVirtual ? c.motivoSuspension : `Motivo: ${c.motivoSuspension}`, { color: isVirtual ? "B45309" : "CC0000" })];
         }
 
         return new TableRow({

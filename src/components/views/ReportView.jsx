@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { getSchoolYearConfig } from '@/services/db';
 import { Printer, File, FileType, Trash2, User } from 'lucide-react';
 import { CURSO_HEX_COLORES } from '@/constants';
 import { generateReportListWord, generateReportTableWord } from '@/utils/reportsWord';
@@ -12,12 +13,20 @@ const extractOACodes = (details) => {
     return [...new Set(codes)].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 };
 
-const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditClase, onDelete, onDeleteMultiple }) => {
+const ReportView = ({ userId, clases, units, schedules, onBack, selectedYear: initialYear, onEditClase, onDelete, onDeleteMultiple }) => {
     const [teacherName, setTeacherName] = useState('');
     const [filtroCurso, setFiltroCurso] = useState('');
     const [filtroAsignatura, setFiltroAsignatura] = useState('');
     const [filtroGrupoTaller, setFiltroGrupoTaller] = useState('');
     const [reportYear, setReportYear] = useState(initialYear);
+    const [schoolYearConfig, setSchoolYearConfig] = useState(null);
+
+    // Fetch Config
+    useEffect(() => {
+        if (userId && reportYear) {
+            getSchoolYearConfig(userId, reportYear).then(setConfig => setSchoolYearConfig(setConfig));
+        }
+    }, [userId, reportYear]);
 
     // ... existing useMemo logic ...
 
@@ -82,8 +91,92 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
         });
     }, [units]);
 
+    // Calculate virtual excluded slots
+    const virtualExcludedSlots = useMemo(() => {
+        if (!filtroCurso || !filtroAsignatura || !schedules || schedules.length === 0 || !schoolYearConfig) return [];
+        if (!schoolYearConfig.schoolYearStart || !schoolYearConfig.schoolYearEnd || !schoolYearConfig.excludedDates) return [];
+
+        const activeSchedule = schedules[0].scheduleData;
+        let blocks = activeSchedule?.[filtroCurso]?.[filtroAsignatura] || [];
+
+        if (filtroGrupoTaller) {
+            blocks = blocks.filter(b => {
+                const bLevels = Array.isArray(b.cursos) ? b.cursos.join(', ') : b.cursos;
+                return bLevels === filtroGrupoTaller;
+            });
+        }
+
+        if (blocks.length === 0) return [];
+
+        const dayMap = { 'Domingo': 0, 'Sunday': 0, 'Lunes': 1, 'Monday': 1, 'Martes': 2, 'Tuesday': 2, 'Miércoles': 3, 'Miercoles': 3, 'Wednesday': 3, 'Jueves': 4, 'Thursday': 4, 'Viernes': 5, 'Friday': 5, 'Sábado': 6, 'Saturday': 6 };
+        const virtuals = [];
+
+        // Parse boundaries
+        const [syStartYear, syStartMonth, syStartDay] = schoolYearConfig.schoolYearStart.split('-').map(Number);
+        const [syEndYear, syEndMonth, syEndDay] = schoolYearConfig.schoolYearEnd.split('-').map(Number);
+        let currDate = new Date(syStartYear, syStartMonth - 1, syStartDay, 12, 0, 0); // 12 avoids TZ issues visually
+        const endDate = new Date(syEndYear, syEndMonth - 1, syEndDay, 12, 0, 0);
+
+        const toLocalISODate = (d) => {
+            const offset = d.getTimezoneOffset() * 60000;
+            return new Date(d.getTime() - offset).toISOString().split('T')[0];
+        };
+
+        // Create a lookup for existing classes to avoid returning a virtual if a real class (or suspended) exists on that date
+        const existingDatesRaw = clasesDelAno
+            .filter(c => c.curso === filtroCurso && c.asignatura === filtroAsignatura)
+            .map(c => toLocalISODate(new Date(c.fecha)));
+        const existingDates = new Set(existingDatesRaw);
+
+        while (currDate <= endDate) {
+            const dateStr = toLocalISODate(currDate);
+            const dayOfWeek = currDate.getDay();
+
+            // Find blocks for this dayOfWeek
+            const dayBlocks = blocks.filter(b => {
+                const d = b.dia !== undefined ? b.dia : b.day;
+                const mapped = typeof d === 'string' ? dayMap[d] : d;
+                return mapped === dayOfWeek;
+            });
+
+            if (dayBlocks.length > 0) {
+                // Is this date excluded?
+                const exclusion = schoolYearConfig.excludedDates.find(ed => {
+                    if (ed.date) return ed.date === dateStr;
+                    if (ed.start && ed.end) return dateStr >= ed.start && dateStr <= ed.end;
+                    return false;
+                });
+
+                if (exclusion && !existingDates.has(dateStr)) {
+                    // Create virtual slots for each block
+                    dayBlocks.forEach((block, idx) => {
+                        const timeString = block.hora || block.startTime;
+                        if (!timeString) return; // Prevent split error if block has no time
+                        const timeParts = timeString.split(':').map(Number);
+                        const blockDate = new Date(currDate.getFullYear(), currDate.getMonth(), currDate.getDate(), timeParts[0], timeParts[1], 0);
+                        
+                        virtuals.push({
+                            id: `virtual-${dateStr}-${idx}`,
+                            isVirtualExclusion: true,
+                            fecha: blockDate.toISOString(),
+                            curso: filtroCurso,
+                            asignatura: filtroAsignatura,
+                            ejecutada: false,
+                            motivoSuspension: exclusion.title || 'Feriado / Sin Clases',
+                            duracion: block.duration || 90,
+                            semana: 'N/A'
+                        });
+                    });
+                }
+            }
+            currDate.setDate(currDate.getDate() + 1);
+        }
+
+        return virtuals;
+    }, [filtroCurso, filtroAsignatura, filtroGrupoTaller, schedules, schoolYearConfig, clasesDelAno]);
+
     const clasesFiltradas = useMemo(() => {
-        return clasesDelAno
+        const reales = clasesDelAno
             .filter(c => !filtroCurso || c.curso === filtroCurso)
             .filter(c => !filtroAsignatura || c.asignatura === filtroAsignatura)
             .filter(c => {
@@ -97,9 +190,11 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
                 if (unit) return unit.levels === filtroGrupoTaller;
                 // Last resort: no group info available — include the class in all groups
                 return true;
-            })
+            });
+            
+        return [...reales, ...virtualExcludedSlots]
             .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
-    }, [clasesDelAno, filtroCurso, filtroAsignatura, filtroGrupoTaller, findUnitForClass]);
+    }, [clasesDelAno, filtroCurso, filtroAsignatura, filtroGrupoTaller, findUnitForClass, virtualExcludedSlots]);
 
     // Build a descriptive filename from active filters
     const buildFilename = (prefix, ext) => {
@@ -126,17 +221,17 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
                 fecha.toLocaleDateString('es-CL'),
                 fecha.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false }),
                 c.semana, cursoName, c.asignatura,
-                ejecutada ? 'Planificada' : 'No Realizada',
+                c.isVirtualExclusion ? 'Sin Clases (Feriado)' : (ejecutada ? 'Planificada' : 'No Realizada'),
                 sanitize(c.motivoSuspension),
-                ejecutada ? sanitize(c.objetivo) : '',
-                ejecutada ? sanitize(c.inicio) : '',
-                ejecutada ? sanitize(c.desarrollo) : '',
-                ejecutada ? sanitize(c.aplicacion) : '',
-                ejecutada ? sanitize(c.cierre) : '',
-                ejecutada && c.dua ? sanitize(c.dua.map(d => `[${d.perfil_nee}] ${d.sugerencia_practica}`).join('\n')) : '',
-                ejecutada ? (unit && unit.numero ? unit.numero : 'N/A') : '', // N° Unidad
-                ejecutada ? sanitize(unit ? unit.nombre : 'N/A') : '',
-                ejecutada ? sanitize(unit ? unit.objetivos : 'N/A') : ''
+                ejecutada && !c.isVirtualExclusion ? sanitize(c.objetivo) : '',
+                ejecutada && !c.isVirtualExclusion ? sanitize(c.inicio) : '',
+                ejecutada && !c.isVirtualExclusion ? sanitize(c.desarrollo) : '',
+                ejecutada && !c.isVirtualExclusion ? sanitize(c.aplicacion) : '',
+                ejecutada && !c.isVirtualExclusion ? sanitize(c.cierre) : '',
+                ejecutada && !c.isVirtualExclusion && c.dua ? sanitize(c.dua.map(d => `[${d.perfil_nee}] ${d.sugerencia_practica}`).join('\n')) : '',
+                ejecutada && !c.isVirtualExclusion ? (unit && unit.numero ? unit.numero : 'N/A') : '', // N° Unidad
+                ejecutada && !c.isVirtualExclusion ? sanitize(unit ? unit.nombre : 'N/A') : '',
+                ejecutada && !c.isVirtualExclusion ? sanitize(unit ? unit.objetivos : 'N/A') : ''
             ].join(';');
         });
         const contenidoCSV = [headers.join(';'), ...rows].join('\n');
@@ -192,7 +287,7 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
                         return [
                             `${diaFecha}\n${hora}\n(${hrsPedagogicas} ${labelHrs})\nSemana ${c.semana}`,
                             cursoLabel,
-                            'CLASE NO REALIZADA\nMotivo: ' + (c.motivoSuspension || ''),
+                            (c.isVirtualExclusion ? 'SIN CLASES\nMotivo: ' : 'CLASE NO REALIZADA\nMotivo: ') + (c.motivoSuspension || ''),
                             ''
                         ];
                     }
@@ -249,11 +344,19 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
                         3: { cellWidth: 135 }  // Increased from 110 + 35 (obs) roughly
                     },
                     didParseCell: (data) => {
-                        // Apply red background to suspended classes
-                        if (data.row.raw[2] && data.row.raw[2].toString().startsWith('CLASE NO REALIZADA')) {
-                            if (data.section === 'body') {
-                                data.cell.styles.fillColor = [255, 230, 230];
-                                data.cell.styles.textColor = [150, 0, 0];
+                        // Apply background to suspended classes
+                        if (data.row.raw[2]) {
+                            const val = data.row.raw[2].toString();
+                            if (val.startsWith('CLASE NO REALIZADA')) {
+                                if (data.section === 'body') {
+                                    data.cell.styles.fillColor = [255, 230, 230];
+                                    data.cell.styles.textColor = [150, 0, 0];
+                                }
+                            } else if (val.startsWith('SIN CLASES')) {
+                                if (data.section === 'body') {
+                                    data.cell.styles.fillColor = [255, 245, 204]; // Amber/Yellow
+                                    data.cell.styles.textColor = [180, 83, 9];    // Amber darker
+                                }
                             }
                         }
                     }
@@ -360,14 +463,14 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
                     </div>
                     <button onClick={exportarACSV} className="btn-accent from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-emerald-500/20"><FileType size={18} /> Exportar a CSV</button>
 
-                    {/* BULK DELETE BUTTON - Only visible when filters are active */}
-                    {filtroCurso && filtroAsignatura && clasesFiltradas.length > 0 && (
+                    {/* BULK DELETE BUTTON - Only visible when filters are active and exclude virtuals */}
+                    {filtroCurso && filtroAsignatura && clasesFiltradas.filter(c => !c.isVirtualExclusion).length > 0 && (
                         <div className="ml-auto pl-4 border-l border-slate-600/50">
                             <button
-                                onClick={() => onDeleteMultiple && onDeleteMultiple(clasesFiltradas)}
+                                onClick={() => onDeleteMultiple && onDeleteMultiple(clasesFiltradas.filter(c => !c.isVirtualExclusion))}
                                 className="bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/30 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all"
                             >
-                                <Trash2 size={18} /> Eliminar {clasesFiltradas.length} Clases
+                                <Trash2 size={18} /> Eliminar {clasesFiltradas.filter(c => !c.isVirtualExclusion).length} Clases
                             </button>
                         </div>
                     )}
@@ -389,24 +492,38 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700/30">
-                            {clasesFiltradas.length > 0 ? clasesFiltradas.map(c => (
-                                <tr key={c.id} onClick={() => onEditClase(c)} className={`hover:bg-indigo-500/10 cursor-pointer transition-colors ${c.ejecutada === false ? 'opacity-60 grayscale' : ''}`}>
+                            {clasesFiltradas.length > 0 ? clasesFiltradas.map(c => {
+                                const isVirtual = !!c.isVirtualExclusion;
+                                const isRealSuspended = !isVirtual && c.ejecutada === false;
+                                
+                                return (
+                                <tr key={c.id} onClick={() => !isVirtual && onEditClase(c)} className={`transition-colors ${isVirtual ? 'bg-amber-500/10 hover:bg-amber-500/20' : 'hover:bg-indigo-500/10 cursor-pointer'} ${isRealSuspended ? 'opacity-60 grayscale' : ''}`}>
                                     <td className="p-4 whitespace-nowrap">{new Date(c.fecha).toLocaleDateString('es-CL')}</td>
                                     <td className="p-4 font-medium text-indigo-300">{c.curso}</td>
                                     <td className="p-4">{c.asignatura}</td>
-                                    <td className="p-4 truncate max-w-xs">{c.ejecutada === false ? `No realizada: ${c.motivoSuspension}` : c.objetivo}</td>
-                                    <td className="p-4">{c.ejecutada !== false ? <span className='inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30'>Planificada</span> : <span className='inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30'>No Realizada</span>}</td>
+                                    <td className="p-4 truncate max-w-xs ">{c.ejecutada === false ? `${isVirtual ? 'Sin Clases' : 'No realizada'}: ${c.motivoSuspension}` : c.objetivo}</td>
+                                    <td className="p-4">
+                                        {isVirtual ? (
+                                            <span className='inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-500/20 text-amber-500 border border-amber-500/30'>Fer. / Vac.</span>
+                                        ) : c.ejecutada !== false ? (
+                                            <span className='inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30'>Planificada</span>
+                                        ) : (
+                                            <span className='inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30'>No Realizada</span>
+                                        )}
+                                    </td>
                                     <td className="p-4 text-right">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); onDelete(c); }}
-                                            className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
-                                            title="Eliminar clase"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
+                                        {!isVirtual && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); onDelete(c); }}
+                                                className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                                                title="Eliminar clase"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
-                            )) : (
+                            )}) : (
                                 <tr><td colSpan="6" className="text-center p-12 text-slate-500 italic">No hay clases que coincidan con los filtros seleccionados para el año {reportYear}.</td></tr>
                             )}
                         </tbody>
