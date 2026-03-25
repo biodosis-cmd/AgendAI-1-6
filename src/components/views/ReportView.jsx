@@ -115,7 +115,24 @@ const ReportView = ({ userId, clases, units, schedules, onBack, selectedYear: in
         const [syStartYear, syStartMonth, syStartDay] = schoolYearConfig.schoolYearStart.split('-').map(Number);
         const [syEndYear, syEndMonth, syEndDay] = schoolYearConfig.schoolYearEnd.split('-').map(Number);
         let currDate = new Date(syStartYear, syStartMonth - 1, syStartDay, 12, 0, 0); // 12 avoids TZ issues visually
-        const endDate = new Date(syEndYear, syEndMonth - 1, syEndDay, 12, 0, 0);
+
+        // Determine cutoff date based on the latest real class
+        const latestClassDateRaw = clasesDelAno
+            .filter(c => c.curso === filtroCurso && c.asignatura === filtroAsignatura)
+            .reduce((latest, c) => {
+                const cDate = new Date(c.fecha);
+                return cDate > latest ? cDate : latest;
+            }, new Date(0));
+            
+        // If there are no real classes at all for this filter, do not generate virtuals (avoid long empty reports)
+        if (latestClassDateRaw.getTime() === 0) return []; 
+
+        // Normalize latest class date to noon to avoid TZ issues
+        const cutoffDate = new Date(latestClassDateRaw.getFullYear(), latestClassDateRaw.getMonth(), latestClassDateRaw.getDate(), 12, 0, 0);
+
+        // Calculate end limit: whichever is earlier between the school year end and the cutoff date
+        const configEndDate = new Date(syEndYear, syEndMonth - 1, syEndDay, 12, 0, 0);
+        const endDate = cutoffDate < configEndDate ? cutoffDate : configEndDate;
 
         const toLocalISODate = (d) => {
             const offset = d.getTimezoneOffset() * 60000;
