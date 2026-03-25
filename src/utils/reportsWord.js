@@ -83,7 +83,16 @@ const extractOACodes = (details) => {
 // --- EXPORT: LIST FORMAT (FICHAS) ---
 
 export const generateReportListWord = async (clases, teacherName, year, filters, units) => {
-    const { filtroCurso, filtroAsignatura } = filters;
+    const { filtroCurso, filtroAsignatura, filtroGrupoTaller } = filters;
+
+    // Build descriptive filename
+    const buildFilename = (prefix, ext) => {
+        const parts = [prefix, year];
+        if (filtroCurso) parts.push(filtroCurso.replace(/\s+/g, '_'));
+        if (filtroAsignatura) parts.push(filtroAsignatura.replace(/\s+/g, '_'));
+        if (filtroGrupoTaller) parts.push(`Grupo_${filtroGrupoTaller.replace(/,\s*/g, '-').replace(/\s+/g, '_')}`);
+        return `${parts.join('_')}.${ext}`;
+    };
 
     // Header for the document
     // Header for the document (School Info)
@@ -290,14 +299,23 @@ export const generateReportListWord = async (clases, teacherName, year, filters,
         }]
     });
 
-    saveAs(await Packer.toBlob(doc), `reporte_fichas_${year}.docx`);
+    saveAs(await Packer.toBlob(doc), buildFilename('reporte_fichas', 'docx'));
 };
 
 
 // --- EXPORT: TABLE FORMAT ---
 
 export const generateReportTableWord = async (clases, teacherName, year, filters, units) => {
-    const { filtroCurso, filtroAsignatura } = filters;
+    const { filtroCurso, filtroAsignatura, filtroGrupoTaller } = filters;
+
+    // Build descriptive filename
+    const buildFilename = (prefix, ext) => {
+        const parts = [prefix, year];
+        if (filtroCurso) parts.push(filtroCurso.replace(/\s+/g, '_'));
+        if (filtroAsignatura) parts.push(filtroAsignatura.replace(/\s+/g, '_'));
+        if (filtroGrupoTaller) parts.push(`Grupo_${filtroGrupoTaller.replace(/,\s*/g, '-').replace(/\s+/g, '_')}`);
+        return `${parts.join('_')}.${ext}`;
+    };
 
     // Header logic similar to List but Landscape
     // Header logic similar to List but Landscape
@@ -484,5 +502,5 @@ export const generateReportTableWord = async (clases, teacherName, year, filters
         }]
     });
 
-    saveAs(await Packer.toBlob(doc), `planificacion_tabla_${year}.docx`);
+    saveAs(await Packer.toBlob(doc), buildFilename('planificacion_tabla', 'docx'));
 };

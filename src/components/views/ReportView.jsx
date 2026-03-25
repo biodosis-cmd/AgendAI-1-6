@@ -101,6 +101,15 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
             .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
     }, [clasesDelAno, filtroCurso, filtroAsignatura, filtroGrupoTaller, findUnitForClass]);
 
+    // Build a descriptive filename from active filters
+    const buildFilename = (prefix, ext) => {
+        const parts = [prefix, reportYear];
+        if (filtroCurso) parts.push(filtroCurso.replace(/\s+/g, '_'));
+        if (filtroAsignatura) parts.push(filtroAsignatura.replace(/\s+/g, '_'));
+        if (filtroGrupoTaller) parts.push(`Grupo_${filtroGrupoTaller.replace(/,\s*/g, '-').replace(/\s+/g, '_')}`);
+        return `${parts.join('_')}.${ext}`;
+    };
+
     const exportarACSV = () => {
         if (!validateName()) return;
 
@@ -134,7 +143,7 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
         const blob = new Blob([`\uFEFF${contenidoCSV}`], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.setAttribute('download', `reporte_planificaciones_${reportYear}.csv`);
+        link.setAttribute('download', buildFilename('reporte', 'csv'));
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -271,19 +280,19 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
                     doc.text("Timbre UTP / Dirección", 210, 45, { align: 'center' });
                 }
 
-                doc.save(`planificacion_${reportYear}_${new Date().toISOString().slice(0, 10)}.pdf`);
+                doc.save(buildFilename('planificacion', 'pdf'));
             });
         });
     };
 
     const exportarAWordLista = () => {
         if (!validateName()) return;
-        generateReportListWord(clasesFiltradas, teacherName, reportYear, { filtroCurso, filtroAsignatura }, units);
+        generateReportListWord(clasesFiltradas, teacherName, reportYear, { filtroCurso, filtroAsignatura, filtroGrupoTaller }, units);
     };
 
     const exportarAWordTabla = () => {
         if (!validateName()) return;
-        generateReportTableWord(clasesFiltradas, teacherName, reportYear, { filtroCurso, filtroAsignatura }, units);
+        generateReportTableWord(clasesFiltradas, teacherName, reportYear, { filtroCurso, filtroAsignatura, filtroGrupoTaller }, units);
     };
 
     return (
