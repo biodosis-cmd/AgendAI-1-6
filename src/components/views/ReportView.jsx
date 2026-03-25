@@ -62,14 +62,23 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
     }, [units, filtroCurso, filtroAsignatura]);
 
     const findUnitForClass = useCallback((clase) => {
+        // Convert class's cursos array to a levels string (same format as unit.levels)
+        const claseLevels = (clase.cursos && Array.isArray(clase.cursos) && clase.cursos.length > 0)
+            ? clase.cursos.join(', ')
+            : null;
+
         return units.find(unit => {
             const claseDate = new Date(clase.fecha);
             const startDate = new Date(unit.fechaInicio + 'T00:00:00');
             const endDate = new Date(unit.fechaTermino + 'T23:59:59');
-            return clase.curso === unit.curso &&
+            const dateMatch = clase.curso === unit.curso &&
                 clase.asignatura === unit.asignatura &&
                 claseDate >= startDate &&
                 claseDate <= endDate;
+            if (!dateMatch) return false;
+            // If the class has group info, use it to pick the correct unit
+            if (claseLevels) return claseLevels === (unit.levels || '');
+            return true;
         });
     }, [units]);
 
@@ -79,8 +88,15 @@ const ReportView = ({ clases, units, onBack, selectedYear: initialYear, onEditCl
             .filter(c => !filtroAsignatura || c.asignatura === filtroAsignatura)
             .filter(c => {
                 if (!filtroGrupoTaller) return true;
+                // Primary: compare the class's own cursos field (set at creation from the schedule block)
+                if (c.cursos && Array.isArray(c.cursos) && c.cursos.length > 0) {
+                    return c.cursos.join(', ') === filtroGrupoTaller;
+                }
+                // Fallback: try to find the associated unit and check its levels
                 const unit = findUnitForClass(c);
-                return unit && unit.levels === filtroGrupoTaller;
+                if (unit) return unit.levels === filtroGrupoTaller;
+                // Last resort: no group info available — include the class in all groups
+                return true;
             })
             .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
     }, [clasesDelAno, filtroCurso, filtroAsignatura, filtroGrupoTaller, findUnitForClass]);
