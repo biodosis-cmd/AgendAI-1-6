@@ -1,7 +1,7 @@
 /**
  * Genera y descarga un documento DOCX con el instrumento de evaluación (Rúbrica o Lista de Cotejo).
  */
-export const generateEvaluationWord = async (evaluationData, curso, asignatura, baseObjective) => {
+export const generateEvaluationWord = async (evaluationData, curso, asignatura, baseObjective, tipoInstrumento) => {
     if (!evaluationData || !evaluationData.criterios) {
         console.error("No hay datos válides para exportar.");
         return;
@@ -177,9 +177,10 @@ export const generateEvaluationWord = async (evaluationData, curso, asignatura, 
 
     try {
         const blob = await Packer.toBlob(doc);
-        const safeType = (evaluationData.tipo || 'Evaluacion').replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const safeClassName = (curso || 'Curso').replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        saveAs(blob, `${safeType}_${safeClassName}.docx`);
+        const safeTipo = (tipoInstrumento || 'Evaluacion').replace(/[^a-z0-9áéíóúñ]/gi, '_').replace(/_+/g, '_').toLowerCase();
+        const safeCurso = (curso || 'Curso').replace(/[^a-z0-9áéíóúñ]/gi, '_').replace(/_+/g, '_').toLowerCase();
+        const safeAsignatura = (asignatura || 'Asignatura').replace(/[^a-z0-9áéíóúñ]/gi, '_').replace(/_+/g, '_').toLowerCase();
+        saveAs(blob, `${safeTipo}_${safeCurso}_${safeAsignatura}.docx`);
     } catch (error) {
         console.error("Error generating DOCX:", error);
         alert("Error al generar el documento Word. Revisa la consola para más detalles.");

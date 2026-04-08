@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ClipboardPaste, Sparkles, ArrowRight, Brain, Check, FileText, Printer } from 'lucide-react';
-import { generateEvaluationPDF } from '@/utils/evaluationPdf';
+import { X, ClipboardPaste, Sparkles, ArrowRight, Brain, Check, FileText } from 'lucide-react';
 import { generateEvaluationWord } from '@/utils/evaluationWord';
 
 const EvaluationGeneratorModal = ({ isOpen, onClose, curso, asignatura, oa, detalles, claseData, selectedClassesData }) => {
@@ -16,8 +15,15 @@ const EvaluationGeneratorModal = ({ isOpen, onClose, curso, asignatura, oa, deta
 
     useEffect(() => {
         if (isOpen) {
+            // Reset completo al abrir: borra todo lo de la evaluación anterior
+            setStep(1);
+            setTipoInstrumento('rubrica4');
             setEvalMode(selectedClassesData ? 'secuencia' : (claseData ? 'clase' : 'global'));
             setIsPieSupport(false);
+            setJsonInput('');
+            setEvaluationData(null);
+            setError('');
+            setIsCopiedPrompt(false);
             if (detalles && Array.isArray(detalles) && detalles.length > 0) {
                 setSelectedOAs(detalles.map((_, i) => i));
             } else {
@@ -221,20 +227,11 @@ Asegúrate de no dejar comas al final de listas.`;
         );
     };
 
-    const handlePrint = async () => {
-        if (!evaluationData) return;
-        try {
-            await generateEvaluationPDF(evaluationData, curso, asignatura, claseData?.objetivo || oa);
-        } catch (e) {
-            console.error("Error al exportar PDF:", e);
-            alert("No se pudo generar el PDF de forma exitosa. Verifica tu conexión a internet o la consola.");
-        }
-    };
-
     const handleWordExport = async () => {
         if (!evaluationData) return;
         try {
-            await generateEvaluationWord(evaluationData, curso, asignatura, claseData?.objetivo || oa);
+            const tipoNombre = tiposDisponibles.find(t => t.id === tipoInstrumento)?.nombre || 'Evaluacion';
+            await generateEvaluationWord(evaluationData, curso, asignatura, claseData?.objetivo || oa, tipoNombre);
         } catch (e) {
             console.error("Error al exportar DOCX:", e);
             alert("No se pudo generar el documento Word de forma exitosa. Verifica tu conexión a internet o la consola.");
@@ -434,10 +431,7 @@ Asegúrate de no dejar comas al final de listas.`;
                                 <div className="flex gap-3">
                                     <button onClick={() => setStep(3)} className="text-slate-400 hover:text-white px-4">Volver</button>
                                     <button onClick={handleWordExport} className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white text-sm font-bold flex items-center gap-2 shadow-lg shadow-blue-900/20 transition-all hover:scale-105 active:scale-95">
-                                        <FileText size={16} /> Word
-                                    </button>
-                                    <button onClick={handlePrint} className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-white text-sm font-bold flex items-center gap-2 shadow-lg shadow-emerald-900/20 transition-all hover:scale-105 active:scale-95">
-                                        <Printer size={16} /> PDF
+                                        <FileText size={16} /> Descargar Word
                                     </button>
                                 </div>
                             </div>
